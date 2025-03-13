@@ -140,7 +140,6 @@ C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\obj\Debug\net8.0\staticwebassets\msb
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\obj\Debug\net8.0\staticwebassets\msbuild.buildMultiTargeting.VoiceInfo.props
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\obj\Debug\net8.0\staticwebassets\msbuild.buildTransitive.VoiceInfo.props
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\obj\Debug\net8.0\staticwebassets.pack.json
-C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\obj\Debug\net8.0\VoiceInfo.csproj.Up2Date
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\obj\Debug\net8.0\VoiceInfo.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\obj\Debug\net8.0\refint\VoiceInfo.dll
@@ -151,3 +150,5 @@ C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Microsoft.AspNetCor
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\AutoMapper.dll
+C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\obj\Debug\net8.0\VoiceInfo.sourcelink.json
+C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt

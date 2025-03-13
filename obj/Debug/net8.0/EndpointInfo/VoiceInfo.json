@@ -306,30 +306,63 @@
         "tags": [
           "Post"
         ],
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/PostCreateDto"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PostCreateDto"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/PostCreateDto"
+                "required": [
+                  "Content",
+                  "Title"
+                ],
+                "type": "object",
+                "properties": {
+                  "Title": {
+                    "maxLength": 200,
+                    "type": "string"
+                  },
+                  "Content": {
+                    "maxLength": 10000,
+                    "type": "string"
+                  },
+                  "Excerpt": {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  "FeaturedImage": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "CategoryId": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "Tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "encoding": {
+                "Title": {
+                  "style": "form"
+                },
+                "Content": {
+                  "style": "form"
+                },
+                "Excerpt": {
+                  "style": "form"
+                },
+                "FeaturedImage": {
+                  "style": "form"
+                },
+                "CategoryId": {
+                  "style": "form"
+                },
+                "Tags": {
+                  "style": "form"
+                }
               }
             }
           }
@@ -355,30 +388,65 @@
               "type": "integer",
               "format": "int32"
             }
-          },
-          {
-            "name": "userId",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "requestBody": {
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/PostUpdateDto"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PostUpdateDto"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/PostUpdateDto"
+                "required": [
+                  "Content",
+                  "Title"
+                ],
+                "type": "object",
+                "properties": {
+                  "Title": {
+                    "maxLength": 200,
+                    "type": "string"
+                  },
+                  "Content": {
+                    "maxLength": 10000,
+                    "type": "string"
+                  },
+                  "Excerpt": {
+                    "maxLength": 500,
+                    "type": "string"
+                  },
+                  "FeaturedImage": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "CategoryId": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "Tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "encoding": {
+                "Title": {
+                  "style": "form"
+                },
+                "Content": {
+                  "style": "form"
+                },
+                "Excerpt": {
+                  "style": "form"
+                },
+                "FeaturedImage": {
+                  "style": "form"
+                },
+                "CategoryId": {
+                  "style": "form"
+                },
+                "Tags": {
+                  "style": "form"
+                }
               }
             }
           }
@@ -438,13 +506,6 @@
             "schema": {
               "type": "integer",
               "format": "int32"
-            }
-          },
-          {
-            "name": "userId",
-            "in": "header",
-            "schema": {
-              "type": "string"
             }
           }
         ],
@@ -832,90 +893,6 @@
           "password": {
             "minLength": 1,
             "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "PostCreateDto": {
-        "required": [
-          "content",
-          "title"
-        ],
-        "type": "object",
-        "properties": {
-          "title": {
-            "maxLength": 200,
-            "minLength": 1,
-            "type": "string"
-          },
-          "content": {
-            "maxLength": 10000,
-            "minLength": 1,
-            "type": "string"
-          },
-          "excerpt": {
-            "maxLength": 500,
-            "type": "string",
-            "nullable": true
-          },
-          "featuredImage": {
-            "maxLength": 200,
-            "type": "string",
-            "nullable": true
-          },
-          "categoryId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "PostUpdateDto": {
-        "required": [
-          "content",
-          "title"
-        ],
-        "type": "object",
-        "properties": {
-          "title": {
-            "maxLength": 200,
-            "minLength": 1,
-            "type": "string"
-          },
-          "content": {
-            "maxLength": 10000,
-            "minLength": 1,
-            "type": "string"
-          },
-          "excerpt": {
-            "maxLength": 500,
-            "type": "string",
-            "nullable": true
-          },
-          "featuredImage": {
-            "maxLength": 200,
-            "type": "string",
-            "nullable": true
-          },
-          "categoryId": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
           }
         },
         "additionalProperties": false

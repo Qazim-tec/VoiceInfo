@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace VoiceInfo.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class PostUpdate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -34,7 +34,7 @@ namespace VoiceInfo.Migrations
                     FirstName = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     LastName = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    ProfilePicture = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    ProfilePicture = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     UserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
@@ -201,7 +201,7 @@ namespace VoiceInfo.Migrations
                     Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Content = table.Column<string>(type: "character varying(10000)", maxLength: 10000, nullable: false),
                     Excerpt = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
-                    FeaturedImage = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    FeaturedImage = table.Column<byte[]>(type: "bytea", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     Views = table.Column<int>(type: "integer", nullable: false),
                     IsFeatured = table.Column<bool>(type: "boolean", nullable: false),

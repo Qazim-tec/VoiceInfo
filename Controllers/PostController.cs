@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using VoiceInfo.DTOs;
+using VoiceInfo.IService;
 using VoiceInfo.Services;
 
 namespace VoiceInfo.Controllers
@@ -19,16 +22,38 @@ namespace VoiceInfo.Controllers
 
         [HttpPost("create")]
         [Authorize]
-        public async Task<IActionResult> CreatePost(PostCreateDto postCreateDto, [FromHeader] string userId)
+        public async Task<IActionResult> CreatePost([FromForm] PostCreateDto postCreateDto)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User ID not found in token.");
+            }
+
             var post = await _postService.CreatePostAsync(postCreateDto, userId);
             return Ok(post);
         }
 
         [HttpPut("update/{postId}")]
         [Authorize]
-        public async Task<IActionResult> UpdatePost(int postId, PostUpdateDto postUpdateDto, [FromHeader] string userId)
+        public async Task<IActionResult> UpdatePost(int postId, [FromForm] PostUpdateDto postUpdateDto)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User ID not found in token.");
+            }
+
             var post = await _postService.UpdatePostAsync(postId, postUpdateDto, userId);
             return Ok(post);
         }
@@ -49,18 +74,36 @@ namespace VoiceInfo.Controllers
 
         [HttpDelete("delete/{postId}")]
         [Authorize]
-        public async Task<IActionResult> DeletePost(int postId, [FromHeader] string userId)
+        public async Task<IActionResult> DeletePost(int postId)
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("User ID not found in token.");
+            }
+
             var result = await _postService.DeletePostAsync(postId, userId);
             return Ok(result);
         }
 
         [HttpPut("feature/{postId}")]
-        [Authorize(Roles = "Admin")] // Only admins can feature posts
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> FeaturePost(int postId, [FromQuery] bool isFeatured)
         {
             var result = await _postService.FeaturePostAsync(postId, isFeatured);
             return Ok(result);
         }
+
+        //// Optional: Serve image directly as a file instead of base64
+        //[HttpGet("image/{postId}")]
+        //public async Task<IActionResult> GetPostImage(int postId)
+        //{
+        //    var post = await _context.Posts.FindAsync(postId); // Assuming _context is injected or accessible
+        //    if (post == null || post.FeaturedImage == null)
+        //    {
+        //        return NotFound();
+        //    }
+        //    return File(post.FeaturedImage, "image/jpeg"); // Adjust MIME type as needed
+        //}
     }
 }

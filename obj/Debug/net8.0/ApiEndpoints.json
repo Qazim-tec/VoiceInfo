@@ -213,13 +213,33 @@
     "Order": 0,
     "Parameters": [
       {
-        "Name": "postCreateDto",
-        "Type": "VoiceInfo.DTOs.PostCreateDto",
-        "IsRequired": true
+        "Name": "Title",
+        "Type": "System.String",
+        "IsRequired": false
       },
       {
-        "Name": "userId",
+        "Name": "Content",
         "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Excerpt",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "FeaturedImage",
+        "Type": "Microsoft.AspNetCore.Http.IFormFile",
+        "IsRequired": false
+      },
+      {
+        "Name": "CategoryId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "Tags",
+        "Type": "System.Collections.Generic.List\u00601[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
         "IsRequired": false
       }
     ],
@@ -237,11 +257,6 @@
         "Name": "postId",
         "Type": "System.Int32",
         "IsRequired": true
-      },
-      {
-        "Name": "userId",
-        "Type": "System.String",
-        "IsRequired": false
       }
     ],
     "ReturnTypes": []
@@ -281,13 +296,33 @@
         "IsRequired": true
       },
       {
-        "Name": "postUpdateDto",
-        "Type": "VoiceInfo.DTOs.PostUpdateDto",
-        "IsRequired": true
+        "Name": "Title",
+        "Type": "System.String",
+        "IsRequired": false
       },
       {
-        "Name": "userId",
+        "Name": "Content",
         "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "Excerpt",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "FeaturedImage",
+        "Type": "Microsoft.AspNetCore.Http.IFormFile",
+        "IsRequired": false
+      },
+      {
+        "Name": "CategoryId",
+        "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "Tags",
+        "Type": "System.Collections.Generic.List\u00601[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
         "IsRequired": false
       }
     ],

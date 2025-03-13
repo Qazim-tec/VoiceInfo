@@ -12,8 +12,8 @@ using VoiceInfo.Data;
 namespace VoiceInfo.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250208235729_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20250312205645_PostUpdate")]
+    partial class PostUpdate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -260,10 +260,9 @@ namespace VoiceInfo.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<string>("FeaturedImage")
+                    b.Property<byte[]>("FeaturedImage")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("bytea");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -380,7 +379,6 @@ namespace VoiceInfo.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<string>("ProfilePicture")
-                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 

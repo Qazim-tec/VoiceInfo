@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using VoiceInfo.Data;
@@ -29,14 +30,22 @@ namespace VoiceInfo.Services
                 Title = postCreateDto.Title,
                 Content = postCreateDto.Content,
                 Excerpt = postCreateDto.Excerpt,
-                FeaturedImage = postCreateDto.FeaturedImage,
                 UserId = userId,
                 CategoryId = postCreateDto.CategoryId
             };
 
-            post.GenerateSlug(); // Ensure slug is generated
+            // Handle image upload
+            if (postCreateDto.FeaturedImage != null && postCreateDto.FeaturedImage.Length > 0)
+            {
+                using (var memoryStream = new MemoryStream())
+                {
+                    await postCreateDto.FeaturedImage.CopyToAsync(memoryStream);
+                    post.FeaturedImage = memoryStream.ToArray();
+                }
+            }
 
-            // Handle Tags
+            post.GenerateSlug();
+
             if (postCreateDto.Tags != null && postCreateDto.Tags.Any())
             {
                 post.Tags = await GetOrCreateTags(postCreateDto.Tags);
@@ -51,9 +60,10 @@ namespace VoiceInfo.Services
                 Title = post.Title,
                 Content = post.Content,
                 Excerpt = post.Excerpt,
-                FeaturedImage = post.FeaturedImage,
+                FeaturedImage = post.FeaturedImage != null ? Convert.ToBase64String(post.FeaturedImage) : null,
                 CreatedAt = post.CreatedAt,
-                AuthorId = post.UserId
+                AuthorId = post.UserId,
+                Slug = post.Slug
             };
         }
 
@@ -66,11 +76,19 @@ namespace VoiceInfo.Services
             post.Title = postUpdateDto.Title;
             post.Content = postUpdateDto.Content;
             post.Excerpt = postUpdateDto.Excerpt;
-            post.FeaturedImage = postUpdateDto.FeaturedImage;
             post.CategoryId = postUpdateDto.CategoryId;
-            post.GenerateSlug(); // Update slug when title changes
 
-            // Handle Tags
+            if (postUpdateDto.FeaturedImage != null && postUpdateDto.FeaturedImage.Length > 0)
+            {
+                using (var memoryStream = new MemoryStream())
+                {
+                    await postUpdateDto.FeaturedImage.CopyToAsync(memoryStream);
+                    post.FeaturedImage = memoryStream.ToArray();
+                }
+            }
+
+            post.GenerateSlug();
+
             if (postUpdateDto.Tags != null)
             {
                 post.Tags = await GetOrCreateTags(postUpdateDto.Tags);
@@ -84,69 +102,69 @@ namespace VoiceInfo.Services
                 Title = post.Title,
                 Content = post.Content,
                 Excerpt = post.Excerpt,
-                FeaturedImage = post.FeaturedImage,
+                FeaturedImage = post.FeaturedImage != null ? Convert.ToBase64String(post.FeaturedImage) : null,
                 CreatedAt = post.CreatedAt,
-                AuthorId = post.UserId
+                AuthorId = post.UserId,
+                Slug = post.Slug
             };
         }
 
         public async Task<PostResponseDto> GetPostByIdAsync(int postId)
-{
-    var post = await _context.Posts
-        .AsNoTracking()
-        .Include(p => p.Author)  // Include Author
-        .Include(p => p.Category) // Include Category
-        .Include(p => p.Tags)     // Include Tags
-        .Include(p => p.Comments) // Include Comments
-        .ThenInclude(c => c.Commenter) // Include Replies for nested comments
-        .FirstOrDefaultAsync(p => p.Id == postId && !p.IsDeleted);
+        {
+            var post = await _context.Posts
+                .AsNoTracking()
+                .Include(p => p.Author)
+                .Include(p => p.Category)
+                .Include(p => p.Tags)
+                .Include(p => p.Comments)
+                .ThenInclude(c => c.Commenter)
+                .FirstOrDefaultAsync(p => p.Id == postId && !p.IsDeleted);
 
-    if (post == null)
-        throw new KeyNotFoundException("Post not found.");
+            if (post == null)
+                throw new KeyNotFoundException("Post not found.");
 
-    // Map Post to PostResponseDto and include comments
-    return new PostResponseDto
-    {
-        Id = post.Id,
-        Title = post.Title,
-        Content = post.Content,
-        Excerpt = post.Excerpt,
-        FeaturedImage = post.FeaturedImage,
-        CreatedAt = post.CreatedAt,
-        AuthorId = post.UserId,
-        IsFeatured = post.IsFeatured,
-        AuthorName = post.Author != null ? $"{post.Author.FirstName} {post.Author.LastName}" : "Unknown Author",
-        CategoryId = post.CategoryId,
-        CategoryName = post.Category != null ? post.Category.Name : "Uncategorized",
-        Tags = post.Tags.Select(t => t.Name).ToList(),
-        Slug = post.Slug,
-        Comments = post.Comments
-            .Where(c => !c.IsDeleted)
-            .Select(c => new CommentResponseDto
+            return new PostResponseDto
             {
-                Id = c.Id,
-                Content = c.Content,
-                CreatedAt = c.CreatedAt,
-                UserId = c.UserId,
-                UserName = c.Commenter != null ? $"{c.Commenter.FirstName} {c.Commenter.LastName}" : "Unknown User",
-                ParentCommentId = c.ParentCommentId,
-                Replies = c.Replies
-                    .Where(r => !r.IsDeleted)
-                    .Select(r => new CommentResponseDto
+                Id = post.Id,
+                Title = post.Title,
+                Content = post.Content,
+                Excerpt = post.Excerpt,
+                FeaturedImage = post.FeaturedImage != null ? Convert.ToBase64String(post.FeaturedImage) : null,
+                Views = post.Views,
+                IsFeatured = post.IsFeatured,
+                CreatedAt = post.CreatedAt,
+                Slug = post.Slug,
+                AuthorId = post.UserId,
+                AuthorName = post.Author != null ? $"{post.Author.FirstName} {post.Author.LastName}" : "Unknown Author",
+                CategoryId = post.CategoryId,
+                CategoryName = post.Category != null ? post.Category.Name : "Uncategorized",
+                Tags = post.Tags.Select(t => t.Name).ToList(),
+                Comments = post.Comments
+                    .Where(c => !c.IsDeleted)
+                    .Select(c => new CommentResponseDto
                     {
-                        Id = r.Id,
-                        Content = r.Content,
-                        CreatedAt = r.CreatedAt,
-                        UserId = r.UserId,
-                        UserName = r.Commenter != null ? $"{r.Commenter.FirstName} {r.Commenter.LastName}" : "Unknown User",
-                        ParentCommentId = r.ParentCommentId
+                        Id = c.Id,
+                        Content = c.Content,
+                        CreatedAt = c.CreatedAt,
+                        UserId = c.UserId,
+                        UserName = c.Commenter != null ? $"{c.Commenter.FirstName} {c.Commenter.LastName}" : "Unknown User",
+                        ParentCommentId = c.ParentCommentId,
+                        Replies = c.Replies
+                            .Where(r => !r.IsDeleted)
+                            .Select(r => new CommentResponseDto
+                            {
+                                Id = r.Id,
+                                Content = r.Content,
+                                CreatedAt = r.CreatedAt,
+                                UserId = r.UserId,
+                                UserName = r.Commenter != null ? $"{r.Commenter.FirstName} {r.Commenter.LastName}" : "Unknown User",
+                                ParentCommentId = r.ParentCommentId
+                            })
+                            .ToList()
                     })
                     .ToList()
-            })
-            .ToList()
-    };
-}
-
+            };
+        }
 
         public async Task<List<PostResponseDto>> GetAllPostsAsync()
         {
@@ -162,15 +180,16 @@ namespace VoiceInfo.Services
                     Title = p.Title,
                     Content = p.Content,
                     Excerpt = p.Excerpt,
-                    FeaturedImage = p.FeaturedImage,
-                    CreatedAt = p.CreatedAt,
-                    AuthorId = p.UserId,
+                    FeaturedImage = p.FeaturedImage != null ? Convert.ToBase64String(p.FeaturedImage) : null,
+                    Views = p.Views,
                     IsFeatured = p.IsFeatured,
+                    CreatedAt = p.CreatedAt,
+                    Slug = p.Slug,
+                    AuthorId = p.UserId,
                     AuthorName = p.Author != null ? $"{p.Author.FirstName} {p.Author.LastName}" : "Unknown Author",
                     CategoryId = p.CategoryId,
                     CategoryName = p.Category != null ? p.Category.Name : "Uncategorized",
-                    Tags = p.Tags.Select(t => t.Name).ToList(),
-                    Slug = p.Slug
+                    Tags = p.Tags.Select(t => t.Name).ToList()
                 })
                 .ToListAsync();
         }

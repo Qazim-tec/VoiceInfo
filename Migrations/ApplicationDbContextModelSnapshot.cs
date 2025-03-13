@@ -257,10 +257,9 @@ namespace VoiceInfo.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<string>("FeaturedImage")
+                    b.Property<byte[]>("FeaturedImage")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("bytea");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");

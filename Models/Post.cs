@@ -21,8 +21,7 @@ namespace VoiceInfo.Models
         [MaxLength(500)]
         public string Excerpt { get; set; }
 
-        [MaxLength(200)]
-        public string FeaturedImage { get; set; }
+        public byte[] FeaturedImage { get; set; } // Changed from string to byte[]
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public int Views { get; set; } = 0;

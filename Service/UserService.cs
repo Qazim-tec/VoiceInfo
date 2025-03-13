@@ -153,7 +153,8 @@ namespace VoiceInfo.Services
                 Token = tokenString,
                 UserId = user.Id,
                 Email = user.Email,
-                Role = roles.FirstOrDefault() ?? "User"
+                Role = roles.FirstOrDefault() ?? "User",
+                FirstName = user.FirstName
             };
         }
     }

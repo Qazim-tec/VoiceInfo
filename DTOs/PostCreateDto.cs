@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace VoiceInfo.DTOs
 {
@@ -17,8 +18,7 @@ namespace VoiceInfo.DTOs
         [MaxLength(500)]
         public string Excerpt { get; set; }
 
-        [MaxLength(200)]
-        public string FeaturedImage { get; set; }
+        public IFormFile FeaturedImage { get; set; } // No MaxLength, it's a file
 
         public int? CategoryId { get; set; }
 
@@ -38,8 +38,7 @@ namespace VoiceInfo.DTOs
         [MaxLength(500)]
         public string Excerpt { get; set; }
 
-        [MaxLength(200)]
-        public string FeaturedImage { get; set; }
+        public IFormFile FeaturedImage { get; set; } // No MaxLength, it's a file
 
         public int? CategoryId { get; set; }
 
@@ -52,7 +51,7 @@ namespace VoiceInfo.DTOs
         public string Title { get; set; }
         public string Content { get; set; }
         public string Excerpt { get; set; }
-        public string FeaturedImage { get; set; }
+        public string FeaturedImage { get; set; } // Base64 string (e.g., "data:image/jpeg;base64,...")
         public int Views { get; set; }
         public bool IsFeatured { get; set; }
         public DateTime CreatedAt { get; set; }
@@ -65,8 +64,6 @@ namespace VoiceInfo.DTOs
         public string CategoryName { get; set; }
 
         public List<string> Tags { get; set; } = new List<string>();
-
-        // Add this line for Comments
         public List<CommentResponseDto> Comments { get; set; } = new List<CommentResponseDto>();
     }
 

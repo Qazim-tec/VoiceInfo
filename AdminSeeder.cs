@@ -28,7 +28,7 @@ namespace VoiceInfo.Data
                 // Set a default password for the admin
                 var result = await userManager.CreateAsync(admin, "Admin@1234");
                 if (result.Succeeded)
-                {
+                {  
                     // Assign the Admin role to the user
                     await userManager.AddToRoleAsync(admin, "Admin");
                 }
