@@ -26,6 +26,7 @@ namespace VoiceInfo.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public int Views { get; set; } = 0;
         public bool IsFeatured { get; set; } = false;
+        public bool IsLatestNews { get; set; } = false; // New property
         public bool IsDeleted { get; set; } = false;
 
         [Required]

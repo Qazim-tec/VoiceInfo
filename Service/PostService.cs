@@ -132,6 +132,7 @@ namespace VoiceInfo.Services
                 FeaturedImage = post.FeaturedImage != null ? Convert.ToBase64String(post.FeaturedImage) : null,
                 Views = post.Views,
                 IsFeatured = post.IsFeatured,
+                IsLatestNews = post.IsLatestNews,
                 CreatedAt = post.CreatedAt,
                 Slug = post.Slug,
                 AuthorId = post.UserId,
@@ -182,6 +183,7 @@ namespace VoiceInfo.Services
                     Excerpt = p.Excerpt,
                     FeaturedImage = p.FeaturedImage != null ? Convert.ToBase64String(p.FeaturedImage) : null,
                     Views = p.Views,
+                    IsLatestNews = p.IsLatestNews,
                     IsFeatured = p.IsFeatured,
                     CreatedAt = p.CreatedAt,
                     Slug = p.Slug,
@@ -217,6 +219,17 @@ namespace VoiceInfo.Services
                 throw new KeyNotFoundException("Post not found.");
 
             post.IsFeatured = isFeatured;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> SetLatestNewsAsync(int postId, bool isLatestNews)
+        {
+            var post = await _context.Posts.FindAsync(postId);
+            if (post == null)
+                throw new KeyNotFoundException("Post not found.");
+
+            post.IsLatestNews = isLatestNews;
             await _context.SaveChangesAsync();
             return true;
         }

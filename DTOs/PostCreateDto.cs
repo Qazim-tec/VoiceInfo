@@ -54,6 +54,7 @@ namespace VoiceInfo.DTOs
         public string FeaturedImage { get; set; } // Base64 string (e.g., "data:image/jpeg;base64,...")
         public int Views { get; set; }
         public bool IsFeatured { get; set; }
+        public bool IsLatestNews { get; set; } // New proper
         public DateTime CreatedAt { get; set; }
         public string Slug { get; set; }
 
@@ -74,5 +75,14 @@ namespace VoiceInfo.DTOs
 
         [Required]
         public bool IsFeatured { get; set; }
+    }
+
+    public class LatestNewsPostDto
+    {
+        [Required]
+        public int PostId { get; set; }
+
+        [Required]
+        public bool IsLatestNews { get; set; }
     }
 }

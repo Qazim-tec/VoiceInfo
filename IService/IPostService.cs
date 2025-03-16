@@ -12,5 +12,6 @@ namespace VoiceInfo.Services
         Task<List<PostResponseDto>> GetAllPostsAsync();
         Task<bool> DeletePostAsync(int postId, string userId);
         Task<bool> FeaturePostAsync(int postId, bool isFeatured);
+        Task<bool> SetLatestNewsAsync(int postId, bool isLatestNews); // New method
     }
 }

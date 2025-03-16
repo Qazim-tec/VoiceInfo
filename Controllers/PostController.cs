@@ -94,16 +94,15 @@ namespace VoiceInfo.Controllers
             return Ok(result);
         }
 
-        //// Optional: Serve image directly as a file instead of base64
-        //[HttpGet("image/{postId}")]
-        //public async Task<IActionResult> GetPostImage(int postId)
-        //{
-        //    var post = await _context.Posts.FindAsync(postId); // Assuming _context is injected or accessible
-        //    if (post == null || post.FeaturedImage == null)
-        //    {
-        //        return NotFound();
-        //    }
-        //    return File(post.FeaturedImage, "image/jpeg"); // Adjust MIME type as needed
-        //}
+        [HttpPut("latest-news/{postId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> SetLatestNews(int postId, [FromQuery] bool isLatestNews)
+        {
+            var result = await _postService.SetLatestNewsAsync(postId, isLatestNews);
+            return result ? Ok(new { message = "Post updated successfully" }) : NotFound("Post not found.");
+        }
+
+
+
     }
 }

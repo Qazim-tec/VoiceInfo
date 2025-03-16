@@ -284,6 +284,27 @@
   },
   {
     "ContainingType": "VoiceInfo.Controllers.PostController",
+    "Method": "SetLatestNews",
+    "RelativePath": "api/Post/latest-news/{postId}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "postId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "isLatestNews",
+        "Type": "System.Boolean",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.PostController",
     "Method": "UpdatePost",
     "RelativePath": "api/Post/update/{postId}",
     "HttpMethod": "PUT",
