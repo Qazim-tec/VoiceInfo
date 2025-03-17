@@ -34,7 +34,6 @@ namespace VoiceInfo.Services
                 CategoryId = postCreateDto.CategoryId
             };
 
-            // Handle image upload
             if (postCreateDto.FeaturedImage != null && postCreateDto.FeaturedImage.Length > 0)
             {
                 using (var memoryStream = new MemoryStream())
@@ -112,7 +111,6 @@ namespace VoiceInfo.Services
         public async Task<PostResponseDto> GetPostByIdAsync(int postId)
         {
             var post = await _context.Posts
-                .AsNoTracking()
                 .Include(p => p.Author)
                 .Include(p => p.Category)
                 .Include(p => p.Tags)
@@ -122,6 +120,10 @@ namespace VoiceInfo.Services
 
             if (post == null)
                 throw new KeyNotFoundException("Post not found.");
+
+            // Increment the view count
+            post.Views += 1;
+            await _context.SaveChangesAsync();
 
             return new PostResponseDto
             {

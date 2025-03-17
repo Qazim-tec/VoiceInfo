@@ -55,9 +55,12 @@ namespace VoiceInfo.Services
 
         public async Task<CategoryResponseDto> GetCategoryByIdAsync(int categoryId)
         {
-            var category = await _context.Categories.FindAsync(categoryId);
+            var category = await _context.Categories
+                .Where(c => c.Id == categoryId && !c.IsDeleted)
+                .FirstOrDefaultAsync();
+
             if (category == null)
-                throw new System.Exception("Category not found.");
+                throw new System.Exception("Category not found or has been deleted.");
 
             return new CategoryResponseDto
             {
@@ -70,6 +73,7 @@ namespace VoiceInfo.Services
         public async Task<List<CategoryResponseDto>> GetAllCategoriesAsync()
         {
             var categories = await _context.Categories
+                .Where(c => !c.IsDeleted) // Filter out soft-deleted categories
                 .Select(c => new CategoryResponseDto
                 {
                     Id = c.Id,
