@@ -52,14 +52,27 @@ builder.Services.AddScoped<ITagService, TagService>();
 // Add controllers
 builder.Services.AddControllers();
 
-// Add CORS services
+// Add CORS services with environment-specific configuration
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
+    var environment = builder.Environment.EnvironmentName;
+    var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>();
+
+    options.AddPolicy("DefaultCorsPolicy", policy =>
     {
-        policy.AllowAnyOrigin()  // You can restrict this to specific origins if needed
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        if (environment == "Development")
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+        else
+        {
+            policy.WithOrigins(allowedOrigins ?? Array.Empty<string>())
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials(); // Include if your frontend needs to send credentials
+        }
     });
 });
 
@@ -68,14 +81,13 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "VoiceInfo API", Version = "v1" });
 
-    // Add JWT Authentication support in Swagger
     var securityScheme = new OpenApiSecurityScheme
     {
         Name = "JWT Authentication",
         Description = "Enter JWT Bearer token **_only_**",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
-        Scheme = "bearer", // must be lower case
+        Scheme = "bearer",
         BearerFormat = "JWT",
         Reference = new OpenApiReference
         {
@@ -97,22 +109,16 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-
-    // Seed roles
     await RoleSeeder.SeedRolesAsync(services);
-
-    // Seed admin user
     await AdminSeeder.SeedAdminAsync(services);
 }
 
 // Middleware configuration
 app.UseHttpsRedirection();
-
-// Add static file support (for Swagger assets)
 app.UseStaticFiles();
 
-// Enable CORS
-app.UseCors(); // Enables the default policy
+// Enable CORS with named policy
+app.UseCors("DefaultCorsPolicy");
 
 // Enable authentication and authorization
 app.UseAuthentication();
@@ -123,7 +129,7 @@ app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "VoiceInfo API V1");
-    c.RoutePrefix = "swagger"; // Swagger UI will be served at /swagger
+    c.RoutePrefix = "swagger";
 });
 
 app.MapControllers();
