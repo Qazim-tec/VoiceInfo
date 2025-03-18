@@ -27,18 +27,23 @@ namespace VoiceInfo.Services
             {
                 Content = commentCreateDto.Content,
                 UserId = userId,
-                PostId = commentCreateDto.PostId
+                PostId = commentCreateDto.PostId,
+                ParentCommentId = commentCreateDto.ParentCommentId // Handle parent comment ID
             };
 
             _context.Comments.Add(comment);
             await _context.SaveChangesAsync();
 
+            var user = await _userManager.FindByIdAsync(userId);
             return new CommentResponseDto
             {
                 Id = comment.Id,
                 Content = comment.Content,
                 CreatedAt = comment.CreatedAt,
-                UserId = comment.UserId
+                UserId = comment.UserId,
+                UserName = user?.FirstName + " " + user?.LastName,
+                ParentCommentId = comment.ParentCommentId,
+                Replies = new List<CommentResponseDto>() // Initialize empty replies list
             };
         }
 
@@ -51,12 +56,16 @@ namespace VoiceInfo.Services
             comment.Content = commentUpdateDto.Content;
             await _context.SaveChangesAsync();
 
+            var user = await _userManager.FindByIdAsync(userId);
             return new CommentResponseDto
             {
                 Id = comment.Id,
                 Content = comment.Content,
                 CreatedAt = comment.CreatedAt,
-                UserId = comment.UserId
+                UserId = comment.UserId,
+                UserName = user?.FirstName + " " + user?.LastName,
+                ParentCommentId = comment.ParentCommentId,
+                Replies = new List<CommentResponseDto>() // Replies not included here for simplicity
             };
         }
 
@@ -75,26 +84,50 @@ namespace VoiceInfo.Services
                 Content = comment.Content,
                 CreatedAt = comment.CreatedAt,
                 UserId = comment.UserId,
-                UserName = comment.Commenter.FirstName + " " + comment.Commenter.LastName
+                UserName = comment.Commenter.FirstName + " " + comment.Commenter.LastName,
+                ParentCommentId = comment.ParentCommentId,
+                Replies = new List<CommentResponseDto>() // Replies not included here for simplicity
             };
         }
 
         public async Task<List<CommentResponseDto>> GetCommentsByPostIdAsync(int postId)
         {
-            var comments = await _context.Comments
+            // Fetch all comments for the post
+            var allComments = await _context.Comments
                 .Include(c => c.Commenter)
                 .Where(c => c.PostId == postId && !c.IsDeleted)
-                .Select(c => new CommentResponseDto
+                .ToListAsync();
+
+            // Build a dictionary for quick lookup
+            var commentDict = allComments.ToDictionary(
+                c => c.Id,
+                c => new CommentResponseDto
                 {
                     Id = c.Id,
                     Content = c.Content,
                     CreatedAt = c.CreatedAt,
                     UserId = c.UserId,
-                    UserName = c.Commenter.FirstName + " " + c.Commenter.LastName
-                })
-                .ToListAsync();
+                    UserName = c.Commenter.FirstName + " " + c.Commenter.LastName,
+                    ParentCommentId = c.ParentCommentId,
+                    Replies = new List<CommentResponseDto>()
+                }
+            );
 
-            return comments;
+            // Build the nested structure
+            var rootComments = new List<CommentResponseDto>();
+            foreach (var comment in commentDict.Values)
+            {
+                if (comment.ParentCommentId == null)
+                {
+                    rootComments.Add(comment);
+                }
+                else if (commentDict.ContainsKey(comment.ParentCommentId.Value))
+                {
+                    commentDict[comment.ParentCommentId.Value].Replies.Add(comment);
+                }
+            }
+
+            return rootComments;
         }
 
         public async Task<bool> DeleteCommentAsync(int commentId, string userId)
