@@ -32,6 +32,13 @@ namespace VoiceInfo.Data
                 .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Self-referencing relationship for comments
+            modelBuilder.Entity<Comment>()
+                .HasOne(c => c.ParentComment)
+                .WithMany(c => c.Replies)
+                .HasForeignKey(c => c.ParentCommentId)
+                .OnDelete(DeleteBehavior.Restrict); // Prevents cascading deletes of parent comments
+
             modelBuilder.Entity<Post>()
                 .HasMany(p => p.Tags)
                 .WithMany(t => t.Posts)

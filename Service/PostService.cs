@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -125,6 +126,35 @@ namespace VoiceInfo.Services
             post.Views += 1;
             await _context.SaveChangesAsync();
 
+            // Build nested comment structure
+            var allComments = post.Comments.Where(c => !c.IsDeleted).ToList();
+            var commentDict = allComments.ToDictionary(
+                c => c.Id,
+                c => new CommentResponseDto
+                {
+                    Id = c.Id,
+                    Content = c.Content,
+                    CreatedAt = c.CreatedAt,
+                    UserId = c.UserId,
+                    UserName = c.Commenter != null ? $"{c.Commenter.FirstName} {c.Commenter.LastName}" : "Unknown User",
+                    ParentCommentId = c.ParentCommentId,
+                    Replies = new List<CommentResponseDto>()
+                }
+            );
+
+            var rootComments = new List<CommentResponseDto>();
+            foreach (var comment in commentDict.Values)
+            {
+                if (comment.ParentCommentId == null)
+                {
+                    rootComments.Add(comment);
+                }
+                else if (commentDict.ContainsKey(comment.ParentCommentId.Value))
+                {
+                    commentDict[comment.ParentCommentId.Value].Replies.Add(comment);
+                }
+            }
+
             return new PostResponseDto
             {
                 Id = post.Id,
@@ -142,30 +172,7 @@ namespace VoiceInfo.Services
                 CategoryId = post.CategoryId,
                 CategoryName = post.Category != null ? post.Category.Name : "Uncategorized",
                 Tags = post.Tags.Select(t => t.Name).ToList(),
-                Comments = post.Comments
-                    .Where(c => !c.IsDeleted)
-                    .Select(c => new CommentResponseDto
-                    {
-                        Id = c.Id,
-                        Content = c.Content,
-                        CreatedAt = c.CreatedAt,
-                        UserId = c.UserId,
-                        UserName = c.Commenter != null ? $"{c.Commenter.FirstName} {c.Commenter.LastName}" : "Unknown User",
-                        ParentCommentId = c.ParentCommentId,
-                        Replies = c.Replies
-                            .Where(r => !r.IsDeleted)
-                            .Select(r => new CommentResponseDto
-                            {
-                                Id = r.Id,
-                                Content = r.Content,
-                                CreatedAt = r.CreatedAt,
-                                UserId = r.UserId,
-                                UserName = r.Commenter != null ? $"{r.Commenter.FirstName} {r.Commenter.LastName}" : "Unknown User",
-                                ParentCommentId = r.ParentCommentId
-                            })
-                            .ToList()
-                    })
-                    .ToList()
+                Comments = rootComments
             };
         }
 
