@@ -257,9 +257,9 @@ namespace VoiceInfo.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<byte[]>("FeaturedImage")
+                    b.Property<string>("FeaturedImageUrl")
                         .IsRequired()
-                        .HasColumnType("bytea");
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -474,7 +474,8 @@ namespace VoiceInfo.Migrations
                 {
                     b.HasOne("VoiceInfo.Models.Comment", "ParentComment")
                         .WithMany("Replies")
-                        .HasForeignKey("ParentCommentId");
+                        .HasForeignKey("ParentCommentId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("VoiceInfo.Models.Post", "Post")
                         .WithMany("Comments")

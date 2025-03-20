@@ -8,18 +8,34 @@ using VoiceInfo.Data;
 using VoiceInfo.IService;
 using VoiceInfo.Models;
 using VoiceInfo.Services;
+using CloudinaryDotNet;                    // Added for Cloudinary
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.Mvc; // Added for caching
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
+// Add Cloudinary configuration - NEW
+var cloudinaryConfig = builder.Configuration.GetSection("Cloudinary");
+var cloudinary = new Cloudinary(new Account(
+    cloudinaryConfig["CloudName"],
+    cloudinaryConfig["ApiKey"],
+    cloudinaryConfig["ApiSecret"]
+));
+builder.Services.AddSingleton(cloudinary);
+
+// Add Memory Cache - NEW
+builder.Services.AddMemoryCache();
+
+// Original DbContext configuration
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Original Identity configuration
 builder.Services.AddIdentity<User, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-// Configure JWT authentication
+// Original JWT configuration
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = Encoding.ASCII.GetBytes(jwtSettings["Key"]);
 
@@ -42,40 +58,52 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Register application services
+// Enhanced service registration - MODIFIED
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IPostService, PostService>();
+builder.Services.AddScoped<IPostService>(provider =>
+    new PostService(
+        provider.GetRequiredService<ApplicationDbContext>(),
+        provider.GetRequiredService<UserManager<User>>(),
+        provider.GetRequiredService<Cloudinary>(),
+        provider.GetRequiredService<IMemoryCache>(),
+        provider.GetRequiredService<IConfiguration>()
+    ));
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<ICategory, CategoryService>();
 builder.Services.AddScoped<ITagService, TagService>();
 
-// Add controllers
-builder.Services.AddControllers();
+// Enhanced controllers with caching - MODIFIED
+builder.Services.AddControllers(options =>
+{
+    options.CacheProfiles.Add("Default30", new CacheProfile
+    {
+        Duration = 30 // Cache for 30 seconds
+    });
+})
+.AddNewtonsoftJson();
 
-// Add CORS services
+// Original CORS configuration
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()  // You can restrict this to specific origins if needed
+        policy.AllowAnyOrigin()
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
 });
 
-// Configure Swagger
+// Original Swagger configuration
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "VoiceInfo API", Version = "v1" });
-
-    // Add JWT Authentication support in Swagger
     var securityScheme = new OpenApiSecurityScheme
     {
         Name = "JWT Authentication",
         Description = "Enter JWT Bearer token **_only_**",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
-        Scheme = "bearer", // must be lower case
+        Scheme = "bearer",
         BearerFormat = "JWT",
         Reference = new OpenApiReference
         {
@@ -83,7 +111,6 @@ builder.Services.AddSwaggerGen(c =>
             Type = ReferenceType.SecurityScheme
         }
     };
-
     c.AddSecurityDefinition(securityScheme.Reference.Id, securityScheme);
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
@@ -91,39 +118,31 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// Add Response Caching - NEW
+builder.Services.AddResponseCaching();
+
 var app = builder.Build();
 
-// Seed roles and admin user
+// Original seeding
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-
-    // Seed roles
     await RoleSeeder.SeedRolesAsync(services);
-
-    // Seed admin user
     await AdminSeeder.SeedAdminAsync(services);
 }
 
-// Middleware configuration
+// Enhanced middleware pipeline - MODIFIED
 app.UseHttpsRedirection();
-
-// Add static file support (for Swagger assets)
 app.UseStaticFiles();
-
-// Enable CORS
-app.UseCors(); // Enables the default policy
-
-// Enable authentication and authorization
+app.UseCors();
+app.UseResponseCaching(); // Added for response caching
 app.UseAuthentication();
 app.UseAuthorization();
-
-// Enable Swagger and Swagger UI
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "VoiceInfo API V1");
-    c.RoutePrefix = "swagger"; // Swagger UI will be served at /swagger
+    c.RoutePrefix = "swagger";
 });
 
 app.MapControllers();

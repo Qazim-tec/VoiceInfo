@@ -18,7 +18,7 @@ namespace VoiceInfo.DTOs
         [MaxLength(500)]
         public string Excerpt { get; set; }
 
-        public IFormFile FeaturedImage { get; set; } // No MaxLength, it's a file
+        public IFormFile FeaturedImage { get; set; }
 
         public int? CategoryId { get; set; }
 
@@ -38,7 +38,7 @@ namespace VoiceInfo.DTOs
         [MaxLength(500)]
         public string Excerpt { get; set; }
 
-        public IFormFile FeaturedImage { get; set; } // No MaxLength, it's a file
+        public IFormFile FeaturedImage { get; set; }
 
         public int? CategoryId { get; set; }
 
@@ -51,10 +51,10 @@ namespace VoiceInfo.DTOs
         public string Title { get; set; }
         public string Content { get; set; }
         public string Excerpt { get; set; }
-        public string FeaturedImage { get; set; } // Base64 string (e.g., "data:image/jpeg;base64,...")
+        public string FeaturedImageUrl { get; set; } // Changed to URL
         public int Views { get; set; }
         public bool IsFeatured { get; set; }
-        public bool IsLatestNews { get; set; } // New proper
+        public bool IsLatestNews { get; set; }
         public DateTime CreatedAt { get; set; }
         public string Slug { get; set; }
 
@@ -67,7 +67,6 @@ namespace VoiceInfo.DTOs
         public List<string> Tags { get; set; } = new List<string>();
         public List<CommentResponseDto> Comments { get; set; } = new List<CommentResponseDto>();
     }
-
     public class FeaturePostDto
     {
         [Required]

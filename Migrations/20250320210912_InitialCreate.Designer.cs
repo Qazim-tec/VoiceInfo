@@ -12,8 +12,8 @@ using VoiceInfo.Data;
 namespace VoiceInfo.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250312205645_PostUpdate")]
-    partial class PostUpdate
+    [Migration("20250320210912_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -260,14 +260,17 @@ namespace VoiceInfo.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<byte[]>("FeaturedImage")
+                    b.Property<string>("FeaturedImageUrl")
                         .IsRequired()
-                        .HasColumnType("bytea");
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsFeatured")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsLatestNews")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Slug")
@@ -474,7 +477,8 @@ namespace VoiceInfo.Migrations
                 {
                     b.HasOne("VoiceInfo.Models.Comment", "ParentComment")
                         .WithMany("Replies")
-                        .HasForeignKey("ParentCommentId");
+                        .HasForeignKey("ParentCommentId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("VoiceInfo.Models.Post", "Post")
                         .WithMany("Comments")

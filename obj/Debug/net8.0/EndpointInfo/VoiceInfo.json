@@ -12,6 +12,11 @@
         ],
         "requestBody": {
           "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryCreateDto"
+              }
+            },
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CategoryCreateDto"
@@ -54,6 +59,11 @@
         ],
         "requestBody": {
           "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryCreateDto"
+              }
+            },
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CategoryCreateDto"
@@ -152,6 +162,11 @@
         ],
         "requestBody": {
           "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentCreateDto"
+              }
+            },
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CommentCreateDto"
@@ -201,6 +216,11 @@
         ],
         "requestBody": {
           "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentUpdateDto"
+              }
+            },
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CommentUpdateDto"
@@ -583,6 +603,11 @@
         ],
         "requestBody": {
           "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagCreateDto"
+              }
+            },
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/TagCreateDto"
@@ -672,6 +697,11 @@
         ],
         "requestBody": {
           "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRegisterDto"
+              }
+            },
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/UserRegisterDto"
@@ -703,6 +733,11 @@
         ],
         "requestBody": {
           "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            },
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/LoginDto"
@@ -744,6 +779,11 @@
         ],
         "requestBody": {
           "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdateDto"
+              }
+            },
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/UserUpdateDto"
@@ -819,6 +859,11 @@
         ],
         "requestBody": {
           "content": {
+            "application/json-patch+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleAssignmentDto"
+              }
+            },
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RoleAssignmentDto"

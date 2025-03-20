@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -10,6 +11,8 @@ using VoiceInfo.Data;
 using VoiceInfo.DTOs;
 using VoiceInfo.IService;
 using VoiceInfo.Models;
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
 
 namespace VoiceInfo.Services
 {
@@ -17,11 +20,37 @@ namespace VoiceInfo.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<User> _userManager;
+        private readonly Cloudinary _cloudinary;
+        private readonly IMemoryCache _cache;
+        private readonly IConfiguration _configuration;
 
-        public PostService(ApplicationDbContext context, UserManager<User> userManager)
+        public PostService(
+            ApplicationDbContext context,
+            UserManager<User> userManager,
+            Cloudinary cloudinary,
+            IMemoryCache cache,
+            IConfiguration configuration)
         {
             _context = context;
             _userManager = userManager;
+            _cloudinary = cloudinary;
+            _cache = cache;
+            _configuration = configuration;
+        }
+
+        private async Task<string> UploadImageToCloudinary(IFormFile image)
+        {
+            if (image == null || image.Length == 0) return null;
+
+            using var stream = image.OpenReadStream();
+            var uploadParams = new ImageUploadParams
+            {
+                File = new FileDescription(image.FileName, stream),
+                Transformation = new Transformation().Width(800).Height(600).Crop("limit")
+            };
+
+            var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+            return uploadResult.SecureUrl.ToString();
         }
 
         public async Task<PostResponseDto> CreatePostAsync(PostCreateDto postCreateDto, string userId)
@@ -35,15 +64,7 @@ namespace VoiceInfo.Services
                 CategoryId = postCreateDto.CategoryId
             };
 
-            if (postCreateDto.FeaturedImage != null && postCreateDto.FeaturedImage.Length > 0)
-            {
-                using (var memoryStream = new MemoryStream())
-                {
-                    await postCreateDto.FeaturedImage.CopyToAsync(memoryStream);
-                    post.FeaturedImage = memoryStream.ToArray();
-                }
-            }
-
+            post.FeaturedImageUrl = await UploadImageToCloudinary(postCreateDto.FeaturedImage);
             post.GenerateSlug();
 
             if (postCreateDto.Tags != null && postCreateDto.Tags.Any())
@@ -54,17 +75,10 @@ namespace VoiceInfo.Services
             _context.Posts.Add(post);
             await _context.SaveChangesAsync();
 
-            return new PostResponseDto
-            {
-                Id = post.Id,
-                Title = post.Title,
-                Content = post.Content,
-                Excerpt = post.Excerpt,
-                FeaturedImage = post.FeaturedImage != null ? Convert.ToBase64String(post.FeaturedImage) : null,
-                CreatedAt = post.CreatedAt,
-                AuthorId = post.UserId,
-                Slug = post.Slug
-            };
+            // Invalidate cache
+            _cache.Remove("all_posts");
+
+            return await GetPostResponseDto(post);
         }
 
         public async Task<PostResponseDto> UpdatePostAsync(int postId, PostUpdateDto postUpdateDto, string userId)
@@ -80,11 +94,7 @@ namespace VoiceInfo.Services
 
             if (postUpdateDto.FeaturedImage != null && postUpdateDto.FeaturedImage.Length > 0)
             {
-                using (var memoryStream = new MemoryStream())
-                {
-                    await postUpdateDto.FeaturedImage.CopyToAsync(memoryStream);
-                    post.FeaturedImage = memoryStream.ToArray();
-                }
+                post.FeaturedImageUrl = await UploadImageToCloudinary(postUpdateDto.FeaturedImage);
             }
 
             post.GenerateSlug();
@@ -96,21 +106,21 @@ namespace VoiceInfo.Services
 
             await _context.SaveChangesAsync();
 
-            return new PostResponseDto
-            {
-                Id = post.Id,
-                Title = post.Title,
-                Content = post.Content,
-                Excerpt = post.Excerpt,
-                FeaturedImage = post.FeaturedImage != null ? Convert.ToBase64String(post.FeaturedImage) : null,
-                CreatedAt = post.CreatedAt,
-                AuthorId = post.UserId,
-                Slug = post.Slug
-            };
+            // Invalidate cache
+            _cache.Remove($"post_{postId}");
+            _cache.Remove("all_posts");
+
+            return await GetPostResponseDto(post);
         }
 
         public async Task<PostResponseDto> GetPostByIdAsync(int postId)
         {
+            string cacheKey = $"post_{postId}";
+            if (_cache.TryGetValue(cacheKey, out PostResponseDto cachedPost))
+            {
+                return cachedPost;
+            }
+
             var post = await _context.Posts
                 .Include(p => p.Author)
                 .Include(p => p.Category)
@@ -122,11 +132,61 @@ namespace VoiceInfo.Services
             if (post == null)
                 throw new KeyNotFoundException("Post not found.");
 
-            // Increment the view count
             post.Views += 1;
             await _context.SaveChangesAsync();
 
-            // Build nested comment structure
+            var postDto = await GetPostResponseDto(post);
+
+            var cacheOptions = new MemoryCacheEntryOptions()
+                .SetSlidingExpiration(TimeSpan.FromMinutes(5));
+            _cache.Set(cacheKey, postDto, cacheOptions);
+
+            return postDto;
+        }
+
+        public async Task<List<PostResponseDto>> GetAllPostsAsync()
+        {
+            if (_cache.TryGetValue("all_posts", out List<PostResponseDto> cachedPosts))
+            {
+                return cachedPosts;
+            }
+
+            var posts = await _context.Posts
+                .AsNoTracking()
+                .Include(p => p.Author)
+                .Include(p => p.Category)
+                .Include(p => p.Tags)
+                .Where(p => !p.IsDeleted)
+                .Select(p => new PostResponseDto
+                {
+                    Id = p.Id,
+                    Title = p.Title,
+                    Content = p.Content,
+                    Excerpt = p.Excerpt,
+                    FeaturedImageUrl = p.FeaturedImageUrl,
+                    Views = p.Views,
+                    IsLatestNews = p.IsLatestNews,
+                    IsFeatured = p.IsFeatured,
+                    CreatedAt = p.CreatedAt,
+                    Slug = p.Slug,
+                    AuthorId = p.UserId,
+                    AuthorName = p.Author != null ? $"{p.Author.FirstName} {p.Author.LastName}" : "Unknown Author",
+                    CategoryId = p.CategoryId,
+                    CategoryName = p.Category != null ? p.Category.Name : "Uncategorized",
+                    Tags = p.Tags.Select(t => t.Name).ToList()
+                })
+                .ToListAsync();
+
+            var cacheOptions = new MemoryCacheEntryOptions()
+                .SetSlidingExpiration(TimeSpan.FromMinutes(5));
+            _cache.Set("all_posts", posts, cacheOptions);
+
+            return posts;
+        }
+
+        // Helper method to reduce code duplication
+        private async Task<PostResponseDto> GetPostResponseDto(Post post)
+        {
             var allComments = post.Comments.Where(c => !c.IsDeleted).ToList();
             var commentDict = allComments.ToDictionary(
                 c => c.Id,
@@ -161,7 +221,7 @@ namespace VoiceInfo.Services
                 Title = post.Title,
                 Content = post.Content,
                 Excerpt = post.Excerpt,
-                FeaturedImage = post.FeaturedImage != null ? Convert.ToBase64String(post.FeaturedImage) : null,
+                FeaturedImageUrl = post.FeaturedImageUrl,
                 Views = post.Views,
                 IsFeatured = post.IsFeatured,
                 IsLatestNews = post.IsLatestNews,
@@ -176,35 +236,8 @@ namespace VoiceInfo.Services
             };
         }
 
-        public async Task<List<PostResponseDto>> GetAllPostsAsync()
-        {
-            return await _context.Posts
-                .AsNoTracking()
-                .Include(p => p.Author)
-                .Include(p => p.Category)
-                .Include(p => p.Tags)
-                .Where(p => !p.IsDeleted)
-                .Select(p => new PostResponseDto
-                {
-                    Id = p.Id,
-                    Title = p.Title,
-                    Content = p.Content,
-                    Excerpt = p.Excerpt,
-                    FeaturedImage = p.FeaturedImage != null ? Convert.ToBase64String(p.FeaturedImage) : null,
-                    Views = p.Views,
-                    IsLatestNews = p.IsLatestNews,
-                    IsFeatured = p.IsFeatured,
-                    CreatedAt = p.CreatedAt,
-                    Slug = p.Slug,
-                    AuthorId = p.UserId,
-                    AuthorName = p.Author != null ? $"{p.Author.FirstName} {p.Author.LastName}" : "Unknown Author",
-                    CategoryId = p.CategoryId,
-                    CategoryName = p.Category != null ? p.Category.Name : "Uncategorized",
-                    Tags = p.Tags.Select(t => t.Name).ToList()
-                })
-                .ToListAsync();
-        }
-
+        // DeletePostAsync, FeaturePostAsync, SetLatestNewsAsync, GetOrCreateTags remain largely the same
+        // Just add cache invalidation where appropriate...
         public async Task<bool> DeletePostAsync(int postId, string userId)
         {
             var post = await _context.Posts.FindAsync(postId);
@@ -218,6 +251,10 @@ namespace VoiceInfo.Services
 
             post.IsDeleted = true;
             await _context.SaveChangesAsync();
+
+            _cache.Remove($"post_{postId}");
+            _cache.Remove("all_posts");
+
             return true;
         }
 
@@ -229,6 +266,10 @@ namespace VoiceInfo.Services
 
             post.IsFeatured = isFeatured;
             await _context.SaveChangesAsync();
+
+            _cache.Remove($"post_{postId}");
+            _cache.Remove("all_posts");
+
             return true;
         }
 
@@ -240,6 +281,10 @@ namespace VoiceInfo.Services
 
             post.IsLatestNews = isLatestNews;
             await _context.SaveChangesAsync();
+
+            _cache.Remove($"post_{postId}");
+            _cache.Remove("all_posts");
+
             return true;
         }
 
@@ -247,7 +292,7 @@ namespace VoiceInfo.Services
         {
             var existingTags = await _context.Tags.Where(t => tagNames.Contains(t.Name)).ToListAsync();
             var newTags = tagNames.Except(existingTags.Select(t => t.Name))
-                                  .Select(t => new Tag { Name = t }).ToList();
+                                .Select(t => new Tag { Name = t }).ToList();
 
             _context.Tags.AddRange(newTags);
             await _context.SaveChangesAsync();

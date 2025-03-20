@@ -21,12 +21,12 @@ namespace VoiceInfo.Models
         [MaxLength(500)]
         public string Excerpt { get; set; }
 
-        public byte[] FeaturedImage { get; set; } // Changed from string to byte[]
+        public string FeaturedImageUrl { get; set; } // Changed to URL string
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public int Views { get; set; } = 0;
         public bool IsFeatured { get; set; } = false;
-        public bool IsLatestNews { get; set; } = false; // New property
+        public bool IsLatestNews { get; set; } = false;
         public bool IsDeleted { get; set; } = false;
 
         [Required]
@@ -47,6 +47,7 @@ namespace VoiceInfo.Models
             Slug = SlugGenerator.GenerateSlug(Title, postId);
         }
     }
+
 
     public static class SlugGenerator
     {
