@@ -680,6 +680,16 @@
   },
   {
     "ContainingType": "VoiceInfo.Controllers.UserController",
+    "Method": "GetProfileStats",
+    "RelativePath": "api/User/profile-stats",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.UserController",
     "Method": "Register",
     "RelativePath": "api/User/register",
     "HttpMethod": "POST",

@@ -10,6 +10,8 @@ namespace VoiceInfo.IService
         Task<bool> DeleteUserAsync(string userId);
         Task<bool> AssignRoleAsync(string userId, string role);
         Task<AuthResponseDto> LoginAsync(LoginDto loginDto); // Add this method
+        Task<UserProfileStatsDto> GetUserProfileStatsAsync(string userId);
+
     }
 
 }

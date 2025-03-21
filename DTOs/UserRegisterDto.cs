@@ -116,4 +116,12 @@ namespace VoiceInfo.DTOs
         [Required]
         public string Role { get; set; } // The role to assign (e.g., "Admin" or "User")
     }
+
+    public class UserProfileStatsDto
+    {
+        public string FullName { get; set; }
+        public string Email { get; set; }
+        public int PostsCount { get; set; }
+        public int CommentsCount { get; set; }
+    }
 }

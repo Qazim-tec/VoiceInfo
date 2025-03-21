@@ -1222,6 +1222,18 @@
           }
         }
       }
+    },
+    "/api/User/profile-stats": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
