@@ -66,7 +66,8 @@ builder.Services.AddScoped<IPostService>(provider =>
         provider.GetRequiredService<UserManager<User>>(),
         provider.GetRequiredService<Cloudinary>(),
         provider.GetRequiredService<IMemoryCache>(),
-        provider.GetRequiredService<IConfiguration>()
+        provider.GetRequiredService<IConfiguration>(),
+        provider.GetRequiredService<ICategory>()
     ));
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<ICategory, CategoryService>();
