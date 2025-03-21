@@ -7,6 +7,7 @@ using VoiceInfo.Models;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace VoiceInfo.Controllers
 {
@@ -16,7 +17,7 @@ namespace VoiceInfo.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IMemoryCache _cache;
-        private const string LatestNewsCacheKeyPrefix = "latest_news_page_";
+        private const string LatestNewsCacheKey = "latest_news_all"; // Single key for all latest news
         private readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
         private const int PostsPerPage = 15;
 
@@ -32,58 +33,60 @@ namespace VoiceInfo.Controllers
         {
             if (page < 1) page = 1;
 
-            string cacheKey = $"{LatestNewsCacheKeyPrefix}{page}";
-            if (_cache.TryGetValue(cacheKey, out PaginatedResponse<PostResponseDto> cachedResponse))
+            // Try to get the full list from cache
+            if (!_cache.TryGetValue(LatestNewsCacheKey, out List<PostResponseDto> allLatestNews))
             {
-                return Ok(cachedResponse);
+                // If not in cache, fetch all latest news from the database
+                allLatestNews = await _context.Posts
+                    .AsNoTracking()
+                    .Include(p => p.Author)
+                    .Include(p => p.Category)
+                    .Include(p => p.Tags)
+                    .Where(p => p.IsLatestNews && !p.IsDeleted)
+                    .OrderByDescending(p => p.CreatedAt)
+                    .Select(p => new PostResponseDto
+                    {
+                        Id = p.Id,
+                        Title = p.Title,
+                        Content = p.Content,
+                        Excerpt = p.Excerpt,
+                        FeaturedImageUrl = p.FeaturedImageUrl,
+                        Views = p.Views,
+                        IsLatestNews = p.IsLatestNews,
+                        IsFeatured = p.IsFeatured,
+                        CreatedAt = p.CreatedAt,
+                        Slug = p.Slug,
+                        AuthorId = p.UserId,
+                        AuthorName = p.Author != null ? $"{p.Author.FirstName} {p.Author.LastName}" : "Unknown Author",
+                        CategoryId = p.CategoryId,
+                        CategoryName = p.Category != null ? p.Category.Name : "Uncategorized",
+                        Tags = p.Tags.Select(t => t.Name).ToList()
+                    })
+                    .ToListAsync();
+
+                // Cache the full list
+                var cacheOptions = new MemoryCacheEntryOptions()
+                    .SetSlidingExpiration(CacheDuration);
+                _cache.Set(LatestNewsCacheKey, allLatestNews, cacheOptions);
             }
 
-            var totalPosts = await _context.Posts
-                .CountAsync(p => p.IsLatestNews && !p.IsDeleted);
-
+            // Paginate the cached list in memory
+            var totalPosts = allLatestNews.Count;
             var totalPages = (int)Math.Ceiling(totalPosts / (double)PostsPerPage);
 
-            var posts = await _context.Posts
-                .AsNoTracking()
-                .Include(p => p.Author)
-                .Include(p => p.Category)
-                .Include(p => p.Tags)
-                .Where(p => p.IsLatestNews && !p.IsDeleted)
-                .OrderByDescending(p => p.CreatedAt)
+            var paginatedPosts = allLatestNews
                 .Skip((page - 1) * PostsPerPage)
                 .Take(PostsPerPage)
-                .Select(p => new PostResponseDto
-                {
-                    Id = p.Id,
-                    Title = p.Title,
-                    Content = p.Content,
-                    Excerpt = p.Excerpt,
-                    FeaturedImageUrl = p.FeaturedImageUrl,
-                    Views = p.Views,
-                    IsLatestNews = p.IsLatestNews,
-                    IsFeatured = p.IsFeatured,
-                    CreatedAt = p.CreatedAt,
-                    Slug = p.Slug,
-                    AuthorId = p.UserId,
-                    AuthorName = p.Author != null ? $"{p.Author.FirstName} {p.Author.LastName}" : "Unknown Author",
-                    CategoryId = p.CategoryId,
-                    CategoryName = p.Category != null ? p.Category.Name : "Uncategorized",
-                    Tags = p.Tags.Select(t => t.Name).ToList()
-                })
-                .ToListAsync();
+                .ToList();
 
             var response = new PaginatedResponse<PostResponseDto>
             {
-                Items = posts,
+                Items = paginatedPosts,
                 CurrentPage = page,
                 TotalPages = totalPages,
                 TotalItems = totalPosts,
                 ItemsPerPage = PostsPerPage
             };
-
-            var cacheOptions = new MemoryCacheEntryOptions()
-                .SetSlidingExpiration(CacheDuration);
-            _cache.Set(cacheKey, response, cacheOptions);
 
             return Ok(response);
         }
