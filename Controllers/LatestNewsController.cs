@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using VoiceInfo.Data;
-using VoiceInfo.DTOs; // Ensure this is included
+using VoiceInfo.DTOs;
 using VoiceInfo.Models;
 using System;
 using System.Linq;
@@ -17,7 +17,7 @@ namespace VoiceInfo.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IMemoryCache _cache;
-        private const string LatestNewsCacheKey = "latest_news_all"; // Single key for all latest news
+        private const string LatestNewsCacheKey = "latest_news_all"; // Single key for latest news
         private readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
         private const int PostsPerPage = 15;
 
@@ -33,16 +33,16 @@ namespace VoiceInfo.Controllers
         {
             if (page < 1) page = 1;
 
-            // Try to get the full list from cache
+            // Try to get the full list of latest news from cache
             if (!_cache.TryGetValue(LatestNewsCacheKey, out List<PostResponseDto> allLatestNews))
             {
-                // If not in cache, fetch all latest news from the database
+                // Fetch only posts where IsLatestNews is true and not deleted
                 allLatestNews = await _context.Posts
                     .AsNoTracking()
                     .Include(p => p.Author)
                     .Include(p => p.Category)
                     .Include(p => p.Tags)
-                    .Where(p => p.IsLatestNews && !p.IsDeleted)
+                    .Where(p => p.IsLatestNews && !p.IsDeleted) // Filter by IsLatestNews = true
                     .OrderByDescending(p => p.CreatedAt)
                     .Select(p => new PostResponseDto
                     {
@@ -52,7 +52,7 @@ namespace VoiceInfo.Controllers
                         Excerpt = p.Excerpt,
                         FeaturedImageUrl = p.FeaturedImageUrl,
                         Views = p.Views,
-                        IsLatestNews = p.IsLatestNews,
+                        IsLatestNews = p.IsLatestNews, // Will always be true due to filter
                         IsFeatured = p.IsFeatured,
                         CreatedAt = p.CreatedAt,
                         Slug = p.Slug,
@@ -64,7 +64,7 @@ namespace VoiceInfo.Controllers
                     })
                     .ToListAsync();
 
-                // Cache the full list
+                // Cache the filtered list
                 var cacheOptions = new MemoryCacheEntryOptions()
                     .SetSlidingExpiration(CacheDuration);
                 _cache.Set(LatestNewsCacheKey, allLatestNews, cacheOptions);
