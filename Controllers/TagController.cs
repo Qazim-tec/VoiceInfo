@@ -19,7 +19,7 @@ namespace VoiceInfo.Controllers
         }
 
         [HttpPost("create")]
-        [Authorize(Roles = "Admin")] // Only admins can create tags
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateTag(TagCreateDto tagCreateDto)
         {
             var tag = await _tagService.CreateTagAsync(tagCreateDto);
@@ -41,7 +41,7 @@ namespace VoiceInfo.Controllers
         }
 
         [HttpDelete("delete/{tagId}")]
-        [Authorize(Roles = "Admin")] // Only admins can delete tags
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteTag(int tagId)
         {
             var result = await _tagService.DeleteTagAsync(tagId);

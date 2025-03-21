@@ -63,7 +63,6 @@ namespace VoiceInfo.Controllers
 
         [HttpGet("profile-stats")]
         [Authorize]
-        [ResponseCache(Duration = 600, Location = ResponseCacheLocation.Any)] // 10-minute HTTP cache
         public async Task<IActionResult> GetProfileStats()
         {
             try

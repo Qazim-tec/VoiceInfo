@@ -8,13 +8,11 @@ using VoiceInfo.Data;
 using VoiceInfo.IService;
 using VoiceInfo.Models;
 using VoiceInfo.Services;
-using CloudinaryDotNet;                    // Added for Cloudinary
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.AspNetCore.Mvc; // Added for caching
+using CloudinaryDotNet;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add Cloudinary configuration - NEW
+// Add Cloudinary configuration
 var cloudinaryConfig = builder.Configuration.GetSection("Cloudinary");
 var cloudinary = new Cloudinary(new Account(
     cloudinaryConfig["CloudName"],
@@ -22,9 +20,6 @@ var cloudinary = new Cloudinary(new Account(
     cloudinaryConfig["ApiSecret"]
 ));
 builder.Services.AddSingleton(cloudinary);
-
-// Add Memory Cache - NEW
-builder.Services.AddMemoryCache();
 
 // Original DbContext configuration
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -58,14 +53,13 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Enhanced service registration - MODIFIED
+// Service registration (updated to remove IMemoryCache dependency)
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPostService>(provider =>
     new PostService(
         provider.GetRequiredService<ApplicationDbContext>(),
         provider.GetRequiredService<UserManager<User>>(),
         provider.GetRequiredService<Cloudinary>(),
-        provider.GetRequiredService<IMemoryCache>(),
         provider.GetRequiredService<IConfiguration>(),
         provider.GetRequiredService<ICategory>()
     ));
@@ -73,15 +67,9 @@ builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<ICategory, CategoryService>();
 builder.Services.AddScoped<ITagService, TagService>();
 
-// Enhanced controllers with caching - MODIFIED
-builder.Services.AddControllers(options =>
-{
-    options.CacheProfiles.Add("Default30", new CacheProfile
-    {
-        Duration = 30 // Cache for 30 seconds
-    });
-})
-.AddNewtonsoftJson();
+// Controllers without caching
+builder.Services.AddControllers()
+    .AddNewtonsoftJson();
 
 // Original CORS configuration
 builder.Services.AddCors(options =>
@@ -119,9 +107,6 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Add Response Caching - NEW
-builder.Services.AddResponseCaching();
-
 var app = builder.Build();
 
 // Original seeding
@@ -132,11 +117,10 @@ using (var scope = app.Services.CreateScope())
     await AdminSeeder.SeedAdminAsync(services);
 }
 
-// Enhanced middleware pipeline - MODIFIED
+// Middleware pipeline without response caching
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseCors();
-app.UseResponseCaching(); // Added for response caching
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseSwagger();

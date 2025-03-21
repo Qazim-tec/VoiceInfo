@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using VoiceInfo.DTOs;
@@ -14,12 +13,10 @@ namespace VoiceInfo.Controllers
     public class PostController : ControllerBase
     {
         private readonly IPostService _postService;
-        private readonly IMemoryCache _cache;
 
-        public PostController(IPostService postService, IMemoryCache cache)
+        public PostController(IPostService postService)
         {
             _postService = postService;
-            _cache = cache;
         }
 
         [HttpPost("create")]
@@ -81,12 +78,6 @@ namespace VoiceInfo.Controllers
         [HttpGet("{postId}")]
         public async Task<IActionResult> GetPost(int postId)
         {
-            string cacheKey = $"post_{postId}";
-            if (_cache.TryGetValue(cacheKey, out PostResponseDto cachedPost))
-            {
-                return Ok(new { data = cachedPost });
-            }
-
             try
             {
                 var post = await _postService.GetPostByIdAsync(postId);
@@ -105,12 +96,6 @@ namespace VoiceInfo.Controllers
         [HttpGet("slug/{slug}")]
         public async Task<IActionResult> GetPostBySlug(string slug)
         {
-            string cacheKey = $"post_slug_{slug}";
-            if (_cache.TryGetValue(cacheKey, out PostResponseDto cachedPost))
-            {
-                return Ok(new { data = cachedPost });
-            }
-
             try
             {
                 var post = await _postService.GetPostBySlugAsync(slug);
@@ -129,12 +114,6 @@ namespace VoiceInfo.Controllers
         [HttpGet("all")]
         public async Task<IActionResult> GetAllPosts()
         {
-            string cacheKey = "all_posts";
-            if (_cache.TryGetValue(cacheKey, out var cachedPosts))
-            {
-                return Ok(new { data = cachedPosts });
-            }
-
             try
             {
                 var posts = await _postService.GetAllPostsAsync();
@@ -204,13 +183,10 @@ namespace VoiceInfo.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { error = "Failed to update latest news status", details = ex.Message });
-
             }
         }
 
         [HttpGet("all-posts-light")]
-        [Authorize(Roles = "Admin")]
-        [ResponseCache(Duration = 30, Location = ResponseCacheLocation.Any)]
         public async Task<IActionResult> GetAllPostsLight([FromQuery] int page = 1, [FromQuery] int pageSize = 15)
         {
             try

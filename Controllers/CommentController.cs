@@ -59,7 +59,7 @@ namespace VoiceInfo.Controllers
             {
                 if (ex.Message.Contains("not found") || ex.Message.Contains("unauthorized"))
                 {
-                    return StatusCode(403, new { error = ex.Message }); // Changed from Forbid
+                    return StatusCode(403, new { error = ex.Message });
                 }
                 return StatusCode(500, new { error = "Failed to update comment", details = ex.Message });
             }
@@ -116,7 +116,7 @@ namespace VoiceInfo.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return StatusCode(403, new { error = ex.Message }); // Changed from Forbid
+                return StatusCode(403, new { error = ex.Message });
             }
             catch (Exception ex)
             {

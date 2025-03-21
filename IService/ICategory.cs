@@ -4,7 +4,6 @@ namespace VoiceInfo.IService
 {
     public interface ICategory
     {
-
         Task<CategoryResponseDto> CreateCategoryAsync(CategoryCreateDto categoryCreateDto);
         Task<CategoryResponseDto> UpdateCategoryAsync(int categoryId, CategoryCreateDto categoryCreateDto);
         Task<CategoryResponseDto> GetCategoryByIdAsync(int categoryId);

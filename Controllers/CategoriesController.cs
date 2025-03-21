@@ -91,7 +91,6 @@ namespace VoiceInfo.Controllers
         }
 
         [HttpGet("{categoryName}/posts")]
-        [ResponseCache(Duration = 30, Location = ResponseCacheLocation.Any)]
         public async Task<IActionResult> GetPostsByCategory(string categoryName, [FromQuery] int page = 1, [FromQuery] int pageSize = 15)
         {
             try
@@ -110,7 +109,6 @@ namespace VoiceInfo.Controllers
         }
 
         [HttpGet("top-posts")]
-        [ResponseCache(Duration = 30, Location = ResponseCacheLocation.Any)]
         public async Task<IActionResult> GetCategoriesWithTopPosts([FromQuery] int postsPerCategory = 3)
         {
             try

@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using VoiceInfo.Data;
 using VoiceInfo.DTOs;
 using VoiceInfo.Models;
@@ -15,30 +14,21 @@ namespace VoiceInfo.Controllers
     public class TrendingPostsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
-        private readonly IMemoryCache _cache;
-        private const string TrendingPostsCacheKey = "trending_posts";
-        private readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10);
         private const int PostsPerPage = 4;
 
-        public TrendingPostsController(ApplicationDbContext context, IMemoryCache cache)
+        public TrendingPostsController(ApplicationDbContext context)
         {
             _context = context;
-            _cache = cache;
         }
 
         // GET: api/TrendingPosts
         [HttpGet]
         public async Task<ActionResult<PostResponseDto[]>> GetTrendingPosts()
         {
-            if (_cache.TryGetValue(TrendingPostsCacheKey, out PostResponseDto[] cachedPosts))
-            {
-                return Ok(cachedPosts);
-            }
-
             var posts = await _context.Posts
                 .AsNoTracking()
                 .Include(p => p.Author)
-                .Include(p => p.Comments) // Still needed to count comments
+                .Include(p => p.Comments)
                 .Where(p => !p.IsDeleted)
                 .Select(p => new PostResponseDto
                 {
@@ -46,7 +36,7 @@ namespace VoiceInfo.Controllers
                     Title = p.Title,
                     CreatedAt = p.CreatedAt,
                     Views = p.Views,
-                    CommentsCount = p.Comments.Count(c => !c.IsDeleted), // Count non-deleted comments
+                    CommentsCount = p.Comments.Count(c => !c.IsDeleted),
                     Slug = p.Slug,
                     FeaturedImageUrl = p.FeaturedImageUrl,
                     AuthorName = p.Author != null ? $"{p.Author.FirstName} {p.Author.LastName}" : "Unknown Author"
@@ -58,10 +48,6 @@ namespace VoiceInfo.Controllers
                 .ThenByDescending(p => p.CreatedAt)
                 .Take(PostsPerPage)
                 .ToArray();
-
-            var cacheOptions = new MemoryCacheEntryOptions()
-                .SetSlidingExpiration(CacheDuration);
-            _cache.Set(TrendingPostsCacheKey, trendingPosts, cacheOptions);
 
             return Ok(trendingPosts);
         }

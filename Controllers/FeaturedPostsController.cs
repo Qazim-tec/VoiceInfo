@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using VoiceInfo.Data;
 using VoiceInfo.DTOs;
 using VoiceInfo.Models;
@@ -16,25 +15,16 @@ namespace VoiceInfo.Controllers
     public class FeaturedPostsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
-        private readonly IMemoryCache _cache;
-        private const string FeaturedPostsCacheKey = "featured_posts";
-        private readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
 
-        public FeaturedPostsController(ApplicationDbContext context, IMemoryCache cache)
+        public FeaturedPostsController(ApplicationDbContext context)
         {
             _context = context;
-            _cache = cache;
         }
 
         // GET: api/FeaturedPosts
         [HttpGet]
         public async Task<ActionResult<List<PostResponseDto>>> GetFeaturedPosts()
         {
-            if (_cache.TryGetValue(FeaturedPostsCacheKey, out List<PostResponseDto> cachedPosts))
-            {
-                return Ok(cachedPosts);
-            }
-
             var posts = await _context.Posts
                 .AsNoTracking()
                 .Include(p => p.Author)
@@ -60,10 +50,6 @@ namespace VoiceInfo.Controllers
                     Tags = p.Tags.Select(t => t.Name).ToList()
                 })
                 .ToListAsync();
-
-            var cacheOptions = new MemoryCacheEntryOptions()
-                .SetSlidingExpiration(CacheDuration);
-            _cache.Set(FeaturedPostsCacheKey, posts, cacheOptions);
 
             return Ok(posts);
         }
@@ -97,10 +83,6 @@ namespace VoiceInfo.Controllers
                     Tags = p.Tags.Select(t => t.Name).ToList()
                 })
                 .ToListAsync();
-
-            var cacheOptions = new MemoryCacheEntryOptions()
-                .SetSlidingExpiration(CacheDuration);
-            _cache.Set(FeaturedPostsCacheKey, posts, cacheOptions);
 
             return Ok(posts);
         }

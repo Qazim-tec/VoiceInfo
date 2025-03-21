@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,16 +15,11 @@ namespace VoiceInfo.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<User> _userManager;
-        private readonly IMemoryCache _cache;
-        private const string TrendingPostsCacheKey = "trending_posts";
-        private const string PostCacheKeyPrefix = "post_";
-        private const string PostSlugCacheKeyPrefix = "post_slug_";
 
-        public CommentService(ApplicationDbContext context, UserManager<User> userManager, IMemoryCache cache)
+        public CommentService(ApplicationDbContext context, UserManager<User> userManager)
         {
             _context = context;
             _userManager = userManager;
-            _cache = cache;
         }
 
         public async Task<CommentResponseDto> CreateCommentAsync(CommentCreateDto commentCreateDto, string userId)
@@ -40,12 +34,6 @@ namespace VoiceInfo.Services
 
             _context.Comments.Add(comment);
             await _context.SaveChangesAsync();
-
-            // Invalidate caches
-            _cache.Remove(TrendingPostsCacheKey);
-            _cache.Remove($"{PostCacheKeyPrefix}{commentCreateDto.PostId}");
-            var post = await _context.Posts.FindAsync(commentCreateDto.PostId);
-            if (post != null) _cache.Remove($"{PostSlugCacheKeyPrefix}{post.Slug}");
 
             var user = await _userManager.FindByIdAsync(userId);
             return new CommentResponseDto
@@ -68,12 +56,6 @@ namespace VoiceInfo.Services
 
             comment.Content = commentUpdateDto.Content;
             await _context.SaveChangesAsync();
-
-            // Invalidate caches
-            _cache.Remove(TrendingPostsCacheKey);
-            _cache.Remove($"{PostCacheKeyPrefix}{comment.PostId}");
-            var post = await _context.Posts.FindAsync(comment.PostId);
-            if (post != null) _cache.Remove($"{PostSlugCacheKeyPrefix}{post.Slug}");
 
             var user = await _userManager.FindByIdAsync(userId);
             return new CommentResponseDto
@@ -159,12 +141,6 @@ namespace VoiceInfo.Services
 
             comment.IsDeleted = true;
             await _context.SaveChangesAsync();
-
-            // Invalidate caches
-            _cache.Remove(TrendingPostsCacheKey);
-            _cache.Remove($"{PostCacheKeyPrefix}{comment.PostId}");
-            var post = await _context.Posts.FindAsync(comment.PostId);
-            if (post != null) _cache.Remove($"{PostSlugCacheKeyPrefix}{post.Slug}");
 
             return true;
         }

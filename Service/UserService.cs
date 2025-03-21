@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.IdentityModel.Tokens.Jwt;
@@ -19,23 +18,18 @@ namespace VoiceInfo.Services
         private readonly UserManager<User> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IConfiguration _configuration;
-        private readonly ApplicationDbContext _context; // Added for Posts and Comments
-        private readonly IMemoryCache _cache; // Added for caching
-        private const string ProfileStatsCacheKeyPrefix = "profile_stats_";
-        private readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10);
+        private readonly ApplicationDbContext _context;
 
         public UserService(
             UserManager<User> userManager,
             RoleManager<IdentityRole> roleManager,
             IConfiguration configuration,
-            ApplicationDbContext context, // Injected
-            IMemoryCache cache) // Injected
+            ApplicationDbContext context)
         {
             _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
             _roleManager = roleManager ?? throw new ArgumentNullException(nameof(roleManager));
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _context = context ?? throw new ArgumentNullException(nameof(context));
-            _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         }
 
         public async Task<UserResponseDto> RegisterAsync(UserRegisterDto userRegisterDto)
@@ -76,7 +70,6 @@ namespace VoiceInfo.Services
             user.ProfilePicture = userUpdateDto.ProfilePicture;
 
             await _userManager.UpdateAsync(user);
-            _cache.Remove($"{ProfileStatsCacheKeyPrefix}{userId}"); // Invalidate cache on update
 
             return new UserResponseDto
             {
@@ -114,7 +107,6 @@ namespace VoiceInfo.Services
 
             user.IsDeleted = true;
             await _userManager.UpdateAsync(user);
-            _cache.Remove($"{ProfileStatsCacheKeyPrefix}{userId}"); // Invalidate cache on delete
             return true;
         }
 
@@ -177,12 +169,6 @@ namespace VoiceInfo.Services
             if (string.IsNullOrEmpty(userId))
                 throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
 
-            string cacheKey = $"{ProfileStatsCacheKeyPrefix}{userId}";
-            if (_cache.TryGetValue(cacheKey, out UserProfileStatsDto cachedStats))
-            {
-                return cachedStats; 
-            }
-
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
                 throw new Exception("User not found.");
@@ -204,10 +190,6 @@ namespace VoiceInfo.Services
                 PostsCount = postsCount,
                 CommentsCount = commentsCount
             };
-
-            var cacheOptions = new MemoryCacheEntryOptions()
-                .SetSlidingExpiration(CacheDuration); // 10-minute cache
-            _cache.Set(cacheKey, stats, cacheOptions);
 
             return stats;
         }

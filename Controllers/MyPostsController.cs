@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using VoiceInfo.Data;
-using VoiceInfo.DTOs; // Ensure this is included
+using VoiceInfo.DTOs;
 using VoiceInfo.Models;
 using System;
 using System.Linq;
@@ -17,15 +16,11 @@ namespace VoiceInfo.Controllers
     public class MyPostsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
-        private readonly IMemoryCache _cache;
-        private const string MyPostsCacheKeyPrefix = "my_posts_page_";
-        private readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
         private const int PostsPerPage = 15;
 
-        public MyPostsController(ApplicationDbContext context, IMemoryCache cache)
+        public MyPostsController(ApplicationDbContext context)
         {
             _context = context;
-            _cache = cache;
         }
 
         // GET: api/MyPosts?page=1
@@ -37,12 +32,6 @@ namespace VoiceInfo.Controllers
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized("User not authenticated.");
-
-            string cacheKey = $"{MyPostsCacheKeyPrefix}{userId}_{page}";
-            if (_cache.TryGetValue(cacheKey, out PaginatedResponse<PostResponseDto> cachedResponse))
-            {
-                return Ok(cachedResponse);
-            }
 
             var totalPosts = await _context.Posts
                 .CountAsync(p => p.UserId == userId && !p.IsDeleted);
@@ -86,10 +75,6 @@ namespace VoiceInfo.Controllers
                 TotalItems = totalPosts,
                 ItemsPerPage = PostsPerPage
             };
-
-            var cacheOptions = new MemoryCacheEntryOptions()
-                .SetSlidingExpiration(CacheDuration);
-            _cache.Set(cacheKey, response, cacheOptions);
 
             return Ok(response);
         }
