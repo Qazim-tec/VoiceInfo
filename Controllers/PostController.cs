@@ -105,7 +105,12 @@ namespace VoiceInfo.Controllers
         [HttpGet("slug/{slug}")]
         public async Task<IActionResult> GetPostBySlug(string slug)
         {
-            string cacheKey = $"post_slug_{slug}";
+            if (string.IsNullOrWhiteSpace(slug))
+            {
+                return BadRequest(new { error = "Slug cannot be empty or null" });
+            }
+
+            string cacheKey = $"post_slug_{slug.ToLower()}"; // Normalize cache key
             if (_cache.TryGetValue(cacheKey, out PostResponseDto cachedPost))
             {
                 return Ok(new { data = cachedPost });
@@ -119,6 +124,10 @@ namespace VoiceInfo.Controllers
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { error = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
             }
             catch (Exception ex)
             {

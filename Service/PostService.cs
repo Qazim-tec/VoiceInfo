@@ -161,13 +161,19 @@ namespace VoiceInfo.Services
 
             var cacheOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(5));
             _cache.Set(cacheKey, postDto, cacheOptions);
-            _cache.Set($"{PostSlugCacheKeyPrefix}{post.Slug}", postDto, cacheOptions); // Cache by slug too
+            _cache.Set($"{PostSlugCacheKeyPrefix}{post.Slug}", postDto, cacheOptions);
 
             return postDto;
         }
 
         public async Task<PostResponseDto> GetPostBySlugAsync(string slug)
         {
+            if (string.IsNullOrWhiteSpace(slug))
+                throw new ArgumentException("Slug cannot be empty or null.");
+
+            // Normalize slug to avoid case sensitivity issues
+            slug = slug.Trim().ToLower();
+
             string cacheKey = $"{PostSlugCacheKeyPrefix}{slug}";
             if (_cache.TryGetValue(cacheKey, out PostResponseDto cachedPost))
             {
@@ -179,10 +185,10 @@ namespace VoiceInfo.Services
                 .Include(p => p.Category)
                 .Include(p => p.Tags)
                 .Include(p => p.Comments).ThenInclude(c => c.Commenter)
-                .FirstOrDefaultAsync(p => p.Slug == slug && !p.IsDeleted);
+                .FirstOrDefaultAsync(p => p.Slug.ToLower() == slug && !p.IsDeleted);
 
             if (post == null)
-                throw new KeyNotFoundException("Post not found.");
+                throw new KeyNotFoundException($"Post with slug '{slug}' not found.");
 
             post.Views += 1;
             await _context.SaveChangesAsync();
@@ -191,7 +197,7 @@ namespace VoiceInfo.Services
 
             var cacheOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(5));
             _cache.Set(cacheKey, postDto, cacheOptions);
-            _cache.Set($"{PostCacheKeyPrefix}{post.Id}", postDto, cacheOptions); // Cache by ID too
+            _cache.Set($"{PostCacheKeyPrefix}{post.Id}", postDto, cacheOptions);
 
             return postDto;
         }
@@ -373,7 +379,7 @@ namespace VoiceInfo.Services
 
         private void InvalidateMyPostsCache(string userId)
         {
-            for (int i = 1; i <= 100; i++) // Adjust this limit as needed
+            for (int i = 1; i <= 100; i++)
             {
                 _cache.Remove($"{MyPostsCacheKeyPrefix}{userId}_{i}");
             }
