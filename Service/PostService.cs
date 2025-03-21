@@ -23,6 +23,13 @@ namespace VoiceInfo.Services
         private readonly Cloudinary _cloudinary;
         private readonly IMemoryCache _cache;
         private readonly IConfiguration _configuration;
+        private const string FeaturedPostsCacheKey = "featured_posts";
+        private const string LatestNewsCacheKeyPrefix = "latest_news_page_";
+        private const string MyPostsCacheKeyPrefix = "my_posts_page_";
+        private const string AllPostsCacheKey = "all_posts";
+        private const string TrendingPostsCacheKey = "trending_posts";
+        private const string PostCacheKeyPrefix = "post_";
+        private const string PostSlugCacheKeyPrefix = "post_slug_";
 
         public PostService(
             ApplicationDbContext context,
@@ -61,7 +68,9 @@ namespace VoiceInfo.Services
                 Content = postCreateDto.Content,
                 Excerpt = postCreateDto.Excerpt,
                 UserId = userId,
-                CategoryId = postCreateDto.CategoryId
+                CategoryId = postCreateDto.CategoryId,
+                IsFeatured = false,
+                IsLatestNews = false
             };
 
             post.FeaturedImageUrl = await UploadImageToCloudinary(postCreateDto.FeaturedImage);
@@ -75,8 +84,13 @@ namespace VoiceInfo.Services
             _context.Posts.Add(post);
             await _context.SaveChangesAsync();
 
-            // Invalidate cache
-            _cache.Remove("all_posts");
+            _cache.Remove(AllPostsCacheKey);
+            _cache.Remove(TrendingPostsCacheKey);
+            if (post.IsFeatured) _cache.Remove(FeaturedPostsCacheKey);
+            if (post.IsLatestNews) InvalidateLatestNewsCache();
+            InvalidateMyPostsCache(userId);
+            _cache.Remove($"{PostCacheKeyPrefix}{post.Id}");
+            _cache.Remove($"{PostSlugCacheKeyPrefix}{post.Slug}");
 
             return await GetPostResponseDto(post);
         }
@@ -86,6 +100,10 @@ namespace VoiceInfo.Services
             var post = await _context.Posts.Include(p => p.Tags).FirstOrDefaultAsync(p => p.Id == postId);
             if (post == null || post.UserId != userId)
                 throw new KeyNotFoundException("Post not found or unauthorized.");
+
+            bool wasFeatured = post.IsFeatured;
+            bool wasLatestNews = post.IsLatestNews;
+            string oldSlug = post.Slug;
 
             post.Title = postUpdateDto.Title;
             post.Content = postUpdateDto.Content;
@@ -106,16 +124,21 @@ namespace VoiceInfo.Services
 
             await _context.SaveChangesAsync();
 
-            // Invalidate cache
-            _cache.Remove($"post_{postId}");
-            _cache.Remove("all_posts");
+            _cache.Remove($"{PostCacheKeyPrefix}{postId}");
+            _cache.Remove($"{PostSlugCacheKeyPrefix}{oldSlug}");
+            _cache.Remove($"{PostSlugCacheKeyPrefix}{post.Slug}");
+            _cache.Remove(AllPostsCacheKey);
+            _cache.Remove(TrendingPostsCacheKey);
+            if (wasFeatured || post.IsFeatured) _cache.Remove(FeaturedPostsCacheKey);
+            if (wasLatestNews || post.IsLatestNews) InvalidateLatestNewsCache();
+            InvalidateMyPostsCache(userId);
 
             return await GetPostResponseDto(post);
         }
 
         public async Task<PostResponseDto> GetPostByIdAsync(int postId)
         {
-            string cacheKey = $"post_{postId}";
+            string cacheKey = $"{PostCacheKeyPrefix}{postId}";
             if (_cache.TryGetValue(cacheKey, out PostResponseDto cachedPost))
             {
                 return cachedPost;
@@ -125,8 +148,7 @@ namespace VoiceInfo.Services
                 .Include(p => p.Author)
                 .Include(p => p.Category)
                 .Include(p => p.Tags)
-                .Include(p => p.Comments)
-                .ThenInclude(c => c.Commenter)
+                .Include(p => p.Comments).ThenInclude(c => c.Commenter)
                 .FirstOrDefaultAsync(p => p.Id == postId && !p.IsDeleted);
 
             if (post == null)
@@ -137,16 +159,46 @@ namespace VoiceInfo.Services
 
             var postDto = await GetPostResponseDto(post);
 
-            var cacheOptions = new MemoryCacheEntryOptions()
-                .SetSlidingExpiration(TimeSpan.FromMinutes(5));
+            var cacheOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(5));
             _cache.Set(cacheKey, postDto, cacheOptions);
+            _cache.Set($"{PostSlugCacheKeyPrefix}{post.Slug}", postDto, cacheOptions); // Cache by slug too
+
+            return postDto;
+        }
+
+        public async Task<PostResponseDto> GetPostBySlugAsync(string slug)
+        {
+            string cacheKey = $"{PostSlugCacheKeyPrefix}{slug}";
+            if (_cache.TryGetValue(cacheKey, out PostResponseDto cachedPost))
+            {
+                return cachedPost;
+            }
+
+            var post = await _context.Posts
+                .Include(p => p.Author)
+                .Include(p => p.Category)
+                .Include(p => p.Tags)
+                .Include(p => p.Comments).ThenInclude(c => c.Commenter)
+                .FirstOrDefaultAsync(p => p.Slug == slug && !p.IsDeleted);
+
+            if (post == null)
+                throw new KeyNotFoundException("Post not found.");
+
+            post.Views += 1;
+            await _context.SaveChangesAsync();
+
+            var postDto = await GetPostResponseDto(post);
+
+            var cacheOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(5));
+            _cache.Set(cacheKey, postDto, cacheOptions);
+            _cache.Set($"{PostCacheKeyPrefix}{post.Id}", postDto, cacheOptions); // Cache by ID too
 
             return postDto;
         }
 
         public async Task<List<PostResponseDto>> GetAllPostsAsync()
         {
-            if (_cache.TryGetValue("all_posts", out List<PostResponseDto> cachedPosts))
+            if (_cache.TryGetValue(AllPostsCacheKey, out List<PostResponseDto> cachedPosts))
             {
                 return cachedPosts;
             }
@@ -173,18 +225,80 @@ namespace VoiceInfo.Services
                     AuthorName = p.Author != null ? $"{p.Author.FirstName} {p.Author.LastName}" : "Unknown Author",
                     CategoryId = p.CategoryId,
                     CategoryName = p.Category != null ? p.Category.Name : "Uncategorized",
-                    Tags = p.Tags.Select(t => t.Name).ToList()
+                    Tags = p.Tags.Select(t => t.Name).ToList(),
+                    CommentsCount = p.Comments.Count(c => !c.IsDeleted)
                 })
                 .ToListAsync();
 
-            var cacheOptions = new MemoryCacheEntryOptions()
-                .SetSlidingExpiration(TimeSpan.FromMinutes(5));
-            _cache.Set("all_posts", posts, cacheOptions);
+            var cacheOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(5));
+            _cache.Set(AllPostsCacheKey, posts, cacheOptions);
 
             return posts;
         }
 
-        // Helper method to reduce code duplication
+        public async Task<bool> DeletePostAsync(int postId, string userId)
+        {
+            var post = await _context.Posts.FindAsync(postId);
+            if (post == null) return false;
+
+            var currentUser = await _userManager.FindByIdAsync(userId);
+            var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
+
+            if (!isAdmin && post.UserId != userId)
+                throw new UnauthorizedAccessException("You do not own this post.");
+
+            post.IsDeleted = true;
+            await _context.SaveChangesAsync();
+
+            _cache.Remove($"{PostCacheKeyPrefix}{postId}");
+            _cache.Remove($"{PostSlugCacheKeyPrefix}{post.Slug}");
+            _cache.Remove(AllPostsCacheKey);
+            _cache.Remove(TrendingPostsCacheKey);
+            if (post.IsFeatured) _cache.Remove(FeaturedPostsCacheKey);
+            if (post.IsLatestNews) InvalidateLatestNewsCache();
+            InvalidateMyPostsCache(userId);
+
+            return true;
+        }
+
+        public async Task<bool> FeaturePostAsync(int postId, bool isFeatured)
+        {
+            var post = await _context.Posts.FindAsync(postId);
+            if (post == null)
+                throw new KeyNotFoundException("Post not found.");
+
+            post.IsFeatured = isFeatured;
+            await _context.SaveChangesAsync();
+
+            _cache.Remove($"{PostCacheKeyPrefix}{postId}");
+            _cache.Remove($"{PostSlugCacheKeyPrefix}{post.Slug}");
+            _cache.Remove(AllPostsCacheKey);
+            _cache.Remove(FeaturedPostsCacheKey);
+            _cache.Remove(TrendingPostsCacheKey);
+            InvalidateMyPostsCache(post.UserId);
+
+            return true;
+        }
+
+        public async Task<bool> SetLatestNewsAsync(int postId, bool isLatestNews)
+        {
+            var post = await _context.Posts.FindAsync(postId);
+            if (post == null)
+                throw new KeyNotFoundException("Post not found.");
+
+            post.IsLatestNews = isLatestNews;
+            await _context.SaveChangesAsync();
+
+            _cache.Remove($"{PostCacheKeyPrefix}{postId}");
+            _cache.Remove($"{PostSlugCacheKeyPrefix}{post.Slug}");
+            _cache.Remove(AllPostsCacheKey);
+            _cache.Remove(TrendingPostsCacheKey);
+            if (isLatestNews || post.IsLatestNews) InvalidateLatestNewsCache();
+            InvalidateMyPostsCache(post.UserId);
+
+            return true;
+        }
+
         private async Task<PostResponseDto> GetPostResponseDto(Post post)
         {
             var allComments = post.Comments.Where(c => !c.IsDeleted).ToList();
@@ -232,60 +346,9 @@ namespace VoiceInfo.Services
                 CategoryId = post.CategoryId,
                 CategoryName = post.Category != null ? post.Category.Name : "Uncategorized",
                 Tags = post.Tags.Select(t => t.Name).ToList(),
+                CommentsCount = allComments.Count,
                 Comments = rootComments
             };
-        }
-
-        // DeletePostAsync, FeaturePostAsync, SetLatestNewsAsync, GetOrCreateTags remain largely the same
-        // Just add cache invalidation where appropriate...
-        public async Task<bool> DeletePostAsync(int postId, string userId)
-        {
-            var post = await _context.Posts.FindAsync(postId);
-            if (post == null) return false;
-
-            var currentUser = await _userManager.FindByIdAsync(userId);
-            var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
-
-            if (!isAdmin && post.UserId != userId)
-                throw new UnauthorizedAccessException("You do not own this post.");
-
-            post.IsDeleted = true;
-            await _context.SaveChangesAsync();
-
-            _cache.Remove($"post_{postId}");
-            _cache.Remove("all_posts");
-
-            return true;
-        }
-
-        public async Task<bool> FeaturePostAsync(int postId, bool isFeatured)
-        {
-            var post = await _context.Posts.FindAsync(postId);
-            if (post == null)
-                throw new KeyNotFoundException("Post not found.");
-
-            post.IsFeatured = isFeatured;
-            await _context.SaveChangesAsync();
-
-            _cache.Remove($"post_{postId}");
-            _cache.Remove("all_posts");
-
-            return true;
-        }
-
-        public async Task<bool> SetLatestNewsAsync(int postId, bool isLatestNews)
-        {
-            var post = await _context.Posts.FindAsync(postId);
-            if (post == null)
-                throw new KeyNotFoundException("Post not found.");
-
-            post.IsLatestNews = isLatestNews;
-            await _context.SaveChangesAsync();
-
-            _cache.Remove($"post_{postId}");
-            _cache.Remove("all_posts");
-
-            return true;
         }
 
         private async Task<List<Tag>> GetOrCreateTags(List<string> tagNames)
@@ -298,6 +361,22 @@ namespace VoiceInfo.Services
             await _context.SaveChangesAsync();
 
             return existingTags.Concat(newTags).ToList();
+        }
+
+        private void InvalidateLatestNewsCache()
+        {
+            for (int i = 1; i <= 100; i++)
+            {
+                _cache.Remove($"{LatestNewsCacheKeyPrefix}{i}");
+            }
+        }
+
+        private void InvalidateMyPostsCache(string userId)
+        {
+            for (int i = 1; i <= 100; i++) // Adjust this limit as needed
+            {
+                _cache.Remove($"{MyPostsCacheKeyPrefix}{userId}_{i}");
+            }
         }
     }
 }

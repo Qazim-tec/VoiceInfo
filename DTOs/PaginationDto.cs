@@ -2,14 +2,13 @@
 
 namespace VoiceInfo.DTOs
 {
-    public class PaginationDto
+    public class PaginatedResponse<T>
     {
-        [Required]
-        public int PageNumber { get; set; } = 1;
-
-        [Required]
-        [Range(1, 100)]
-        public int PageSize { get; set; } = 10;
+        public List<T> Items { get; set; }
+        public int CurrentPage { get; set; }
+        public int TotalPages { get; set; }
+        public int TotalItems { get; set; }
+        public int ItemsPerPage { get; set; }
     }
 
     public class ApiResponseDto

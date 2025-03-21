@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,10 +14,14 @@ namespace VoiceInfo.Services
     public class CategoryService : ICategory
     {
         private readonly ApplicationDbContext _context;
+        private readonly IMemoryCache _cache;
+        private const string CategoriesCacheKey = "categories_all";
+        private readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10); // Cache for 10 minutes
 
-        public CategoryService(ApplicationDbContext context)
+        public CategoryService(ApplicationDbContext context, IMemoryCache cache)
         {
             _context = context;
+            _cache = cache;
         }
 
         public async Task<CategoryResponseDto> CreateCategoryAsync(CategoryCreateDto categoryCreateDto)
@@ -27,6 +33,8 @@ namespace VoiceInfo.Services
 
             _context.Categories.Add(category);
             await _context.SaveChangesAsync();
+
+            _cache.Remove(CategoriesCacheKey); // Invalidate cache on create
 
             return new CategoryResponseDto
             {
@@ -40,10 +48,12 @@ namespace VoiceInfo.Services
         {
             var category = await _context.Categories.FindAsync(categoryId);
             if (category == null)
-                throw new System.Exception("Category not found.");
+                throw new Exception("Category not found.");
 
             category.Name = categoryCreateDto.Name;
             await _context.SaveChangesAsync();
+
+            _cache.Remove(CategoriesCacheKey); // Invalidate cache on update
 
             return new CategoryResponseDto
             {
@@ -60,7 +70,7 @@ namespace VoiceInfo.Services
                 .FirstOrDefaultAsync();
 
             if (category == null)
-                throw new System.Exception("Category not found or has been deleted.");
+                throw new Exception("Category not found or has been deleted.");
 
             return new CategoryResponseDto
             {
@@ -72,8 +82,13 @@ namespace VoiceInfo.Services
 
         public async Task<List<CategoryResponseDto>> GetAllCategoriesAsync()
         {
+            if (_cache.TryGetValue(CategoriesCacheKey, out List<CategoryResponseDto> cachedCategories))
+            {
+                return cachedCategories;
+            }
+
             var categories = await _context.Categories
-                .Where(c => !c.IsDeleted) // Filter out soft-deleted categories
+                .Where(c => !c.IsDeleted)
                 .Select(c => new CategoryResponseDto
                 {
                     Id = c.Id,
@@ -82,6 +97,10 @@ namespace VoiceInfo.Services
                 })
                 .ToListAsync();
 
+            var cacheOptions = new MemoryCacheEntryOptions()
+                .SetSlidingExpiration(CacheDuration);
+            _cache.Set(CategoriesCacheKey, categories, cacheOptions);
+
             return categories;
         }
 
@@ -89,10 +108,13 @@ namespace VoiceInfo.Services
         {
             var category = await _context.Categories.FindAsync(categoryId);
             if (category == null)
-                throw new System.Exception("Category not found.");
+                throw new Exception("Category not found.");
 
             category.IsDeleted = true;
             await _context.SaveChangesAsync();
+
+            _cache.Remove(CategoriesCacheKey); // Invalidate cache on delete
+
             return true;
         }
     }

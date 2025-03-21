@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,11 +16,16 @@ namespace VoiceInfo.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<User> _userManager;
+        private readonly IMemoryCache _cache;
+        private const string TrendingPostsCacheKey = "trending_posts";
+        private const string PostCacheKeyPrefix = "post_";
+        private const string PostSlugCacheKeyPrefix = "post_slug_";
 
-        public CommentService(ApplicationDbContext context, UserManager<User> userManager)
+        public CommentService(ApplicationDbContext context, UserManager<User> userManager, IMemoryCache cache)
         {
             _context = context;
             _userManager = userManager;
+            _cache = cache;
         }
 
         public async Task<CommentResponseDto> CreateCommentAsync(CommentCreateDto commentCreateDto, string userId)
@@ -28,11 +35,17 @@ namespace VoiceInfo.Services
                 Content = commentCreateDto.Content,
                 UserId = userId,
                 PostId = commentCreateDto.PostId,
-                ParentCommentId = commentCreateDto.ParentCommentId // Handle parent comment ID
+                ParentCommentId = commentCreateDto.ParentCommentId
             };
 
             _context.Comments.Add(comment);
             await _context.SaveChangesAsync();
+
+            // Invalidate caches
+            _cache.Remove(TrendingPostsCacheKey);
+            _cache.Remove($"{PostCacheKeyPrefix}{commentCreateDto.PostId}");
+            var post = await _context.Posts.FindAsync(commentCreateDto.PostId);
+            if (post != null) _cache.Remove($"{PostSlugCacheKeyPrefix}{post.Slug}");
 
             var user = await _userManager.FindByIdAsync(userId);
             return new CommentResponseDto
@@ -41,9 +54,9 @@ namespace VoiceInfo.Services
                 Content = comment.Content,
                 CreatedAt = comment.CreatedAt,
                 UserId = comment.UserId,
-                UserName = user?.FirstName + " " + user?.LastName,
+                UserName = user != null ? $"{user.FirstName} {user.LastName}" : "Unknown User",
                 ParentCommentId = comment.ParentCommentId,
-                Replies = new List<CommentResponseDto>() // Initialize empty replies list
+                Replies = new List<CommentResponseDto>()
             };
         }
 
@@ -51,10 +64,16 @@ namespace VoiceInfo.Services
         {
             var comment = await _context.Comments.FindAsync(commentId);
             if (comment == null || comment.UserId != userId)
-                throw new System.Exception("Comment not found or unauthorized.");
+                throw new Exception("Comment not found or unauthorized.");
 
             comment.Content = commentUpdateDto.Content;
             await _context.SaveChangesAsync();
+
+            // Invalidate caches
+            _cache.Remove(TrendingPostsCacheKey);
+            _cache.Remove($"{PostCacheKeyPrefix}{comment.PostId}");
+            var post = await _context.Posts.FindAsync(comment.PostId);
+            if (post != null) _cache.Remove($"{PostSlugCacheKeyPrefix}{post.Slug}");
 
             var user = await _userManager.FindByIdAsync(userId);
             return new CommentResponseDto
@@ -63,9 +82,9 @@ namespace VoiceInfo.Services
                 Content = comment.Content,
                 CreatedAt = comment.CreatedAt,
                 UserId = comment.UserId,
-                UserName = user?.FirstName + " " + user?.LastName,
+                UserName = user != null ? $"{user.FirstName} {user.LastName}" : "Unknown User",
                 ParentCommentId = comment.ParentCommentId,
-                Replies = new List<CommentResponseDto>() // Replies not included here for simplicity
+                Replies = new List<CommentResponseDto>()
             };
         }
 
@@ -76,7 +95,7 @@ namespace VoiceInfo.Services
                 .FirstOrDefaultAsync(c => c.Id == commentId && !c.IsDeleted);
 
             if (comment == null)
-                throw new System.Exception("Comment not found.");
+                throw new Exception("Comment not found.");
 
             return new CommentResponseDto
             {
@@ -84,21 +103,19 @@ namespace VoiceInfo.Services
                 Content = comment.Content,
                 CreatedAt = comment.CreatedAt,
                 UserId = comment.UserId,
-                UserName = comment.Commenter.FirstName + " " + comment.Commenter.LastName,
+                UserName = comment.Commenter != null ? $"{comment.Commenter.FirstName} {comment.Commenter.LastName}" : "Unknown User",
                 ParentCommentId = comment.ParentCommentId,
-                Replies = new List<CommentResponseDto>() // Replies not included here for simplicity
+                Replies = new List<CommentResponseDto>()
             };
         }
 
         public async Task<List<CommentResponseDto>> GetCommentsByPostIdAsync(int postId)
         {
-            // Fetch all comments for the post
             var allComments = await _context.Comments
                 .Include(c => c.Commenter)
                 .Where(c => c.PostId == postId && !c.IsDeleted)
                 .ToListAsync();
 
-            // Build a dictionary for quick lookup
             var commentDict = allComments.ToDictionary(
                 c => c.Id,
                 c => new CommentResponseDto
@@ -107,13 +124,12 @@ namespace VoiceInfo.Services
                     Content = c.Content,
                     CreatedAt = c.CreatedAt,
                     UserId = c.UserId,
-                    UserName = c.Commenter.FirstName + " " + c.Commenter.LastName,
+                    UserName = c.Commenter != null ? $"{c.Commenter.FirstName} {c.Commenter.LastName}" : "Unknown User",
                     ParentCommentId = c.ParentCommentId,
                     Replies = new List<CommentResponseDto>()
                 }
             );
 
-            // Build the nested structure
             var rootComments = new List<CommentResponseDto>();
             foreach (var comment in commentDict.Values)
             {
@@ -143,6 +159,13 @@ namespace VoiceInfo.Services
 
             comment.IsDeleted = true;
             await _context.SaveChangesAsync();
+
+            // Invalidate caches
+            _cache.Remove(TrendingPostsCacheKey);
+            _cache.Remove($"{PostCacheKeyPrefix}{comment.PostId}");
+            var post = await _context.Posts.FindAsync(comment.PostId);
+            if (post != null) _cache.Remove($"{PostSlugCacheKeyPrefix}{post.Slug}");
+
             return true;
         }
     }

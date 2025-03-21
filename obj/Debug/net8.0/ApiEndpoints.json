@@ -106,11 +106,6 @@
         "Name": "commentCreateDto",
         "Type": "VoiceInfo.DTOs.CommentCreateDto",
         "IsRequired": true
-      },
-      {
-        "Name": "userId",
-        "Type": "System.String",
-        "IsRequired": false
       }
     ],
     "ReturnTypes": []
@@ -127,11 +122,6 @@
         "Name": "commentId",
         "Type": "System.Int32",
         "IsRequired": true
-      },
-      {
-        "Name": "userId",
-        "Type": "System.String",
-        "IsRequired": false
       }
     ],
     "ReturnTypes": []
@@ -169,14 +159,101 @@
         "Name": "commentUpdateDto",
         "Type": "VoiceInfo.DTOs.CommentUpdateDto",
         "IsRequired": true
-      },
-      {
-        "Name": "userId",
-        "Type": "System.String",
-        "IsRequired": false
       }
     ],
     "ReturnTypes": []
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.FeaturedPostsController",
+    "Method": "GetFeaturedPosts",
+    "RelativePath": "api/FeaturedPosts",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.List\u00601[[VoiceInfo.DTOs.PostResponseDto, VoiceInfo, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.FeaturedPostsController",
+    "Method": "RefreshFeaturedPosts",
+    "RelativePath": "api/FeaturedPosts/refresh",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.List\u00601[[VoiceInfo.DTOs.PostResponseDto, VoiceInfo, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.LatestNewsController",
+    "Method": "GetLatestNews",
+    "RelativePath": "api/LatestNews",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "VoiceInfo.DTOs.PaginatedResponse\u00601[[VoiceInfo.DTOs.PostResponseDto, VoiceInfo, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.MyPostsController",
+    "Method": "GetMyPosts",
+    "RelativePath": "api/MyPosts",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "VoiceInfo.DTOs.PaginatedResponse\u00601[[VoiceInfo.DTOs.PostResponseDto, VoiceInfo, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
   },
   {
     "ContainingType": "VoiceInfo.Controllers.PostController",
@@ -305,6 +382,22 @@
   },
   {
     "ContainingType": "VoiceInfo.Controllers.PostController",
+    "Method": "GetPostBySlug",
+    "RelativePath": "api/Post/slug/{slug}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "slug",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.PostController",
     "Method": "UpdatePost",
     "RelativePath": "api/Post/update/{postId}",
     "HttpMethod": "PUT",
@@ -348,6 +441,37 @@
       }
     ],
     "ReturnTypes": []
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.SearchController",
+    "Method": "SearchPosts",
+    "RelativePath": "api/Search",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "query",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "VoiceInfo.DTOs.PaginatedResponse\u00601[[VoiceInfo.DTOs.PostResponseDto, VoiceInfo, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
   },
   {
     "ContainingType": "VoiceInfo.Controllers.TagController",
@@ -406,6 +530,26 @@
       }
     ],
     "ReturnTypes": []
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.TrendingPostsController",
+    "Method": "GetTrendingPosts",
+    "RelativePath": "api/TrendingPosts",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "VoiceInfo.DTOs.PostResponseDto[]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
   },
   {
     "ContainingType": "VoiceInfo.Controllers.UserController",

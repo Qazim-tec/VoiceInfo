@@ -65,6 +65,7 @@ namespace VoiceInfo.DTOs
         public string CategoryName { get; set; }
 
         public List<string> Tags { get; set; } = new List<string>();
+        public int CommentsCount { get; set; } 
         public List<CommentResponseDto> Comments { get; set; } = new List<CommentResponseDto>();
     }
     public class FeaturePostDto
