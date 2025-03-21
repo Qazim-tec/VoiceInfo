@@ -17,6 +17,32 @@
   },
   {
     "ContainingType": "VoiceInfo.Controllers.CategoryController",
+    "Method": "GetPostsByCategory",
+    "RelativePath": "api/Category/{categoryName}/posts",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "categoryName",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.CategoryController",
     "Method": "GetAllCategories",
     "RelativePath": "api/Category/all",
     "HttpMethod": "GET",

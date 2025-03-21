@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using VoiceInfo.DTOs;
 using VoiceInfo.IService;
-using VoiceInfo.Services;
 
 namespace VoiceInfo.Controllers
 {
@@ -15,45 +14,99 @@ namespace VoiceInfo.Controllers
 
         public CategoryController(ICategory categoryService)
         {
-            _categoryService = categoryService;
+            _categoryService = categoryService ?? throw new ArgumentNullException(nameof(categoryService));
         }
 
         [HttpPost("create")]
         [Authorize(Roles = "Admin")] // Only admins can create categories
         public async Task<IActionResult> CreateCategory(CategoryCreateDto categoryCreateDto)
         {
-            var category = await _categoryService.CreateCategoryAsync(categoryCreateDto);
-            return Ok(category);
+            try
+            {
+                var category = await _categoryService.CreateCategoryAsync(categoryCreateDto);
+                return Ok(category);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPut("update/{categoryId}")]
         [Authorize(Roles = "Admin")] // Only admins can update categories
         public async Task<IActionResult> UpdateCategory(int categoryId, CategoryCreateDto categoryCreateDto)
         {
-            var category = await _categoryService.UpdateCategoryAsync(categoryId, categoryCreateDto);
-            return Ok(category);
+            try
+            {
+                var category = await _categoryService.UpdateCategoryAsync(categoryId, categoryCreateDto);
+                return Ok(category);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpGet("{categoryId}")]
         public async Task<IActionResult> GetCategory(int categoryId)
         {
-            var category = await _categoryService.GetCategoryByIdAsync(categoryId);
-            return Ok(category);
+            try
+            {
+                var category = await _categoryService.GetCategoryByIdAsync(categoryId);
+                return Ok(category);
+            }
+            catch (Exception ex)
+            {
+                return NotFound(ex.Message);
+            }
         }
 
         [HttpGet("all")]
         public async Task<IActionResult> GetAllCategories()
         {
-            var categories = await _categoryService.GetAllCategoriesAsync();
-            return Ok(categories);
+            try
+            {
+                var categories = await _categoryService.GetAllCategoriesAsync();
+                return Ok(categories);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpDelete("delete/{categoryId}")]
         [Authorize(Roles = "Admin")] // Only admins can delete categories
         public async Task<IActionResult> DeleteCategory(int categoryId)
         {
-            var result = await _categoryService.DeleteCategoryAsync(categoryId);
-            return Ok(result);
+            try
+            {
+                var result = await _categoryService.DeleteCategoryAsync(categoryId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("{categoryName}/posts")]
+        [ResponseCache(Duration = 30, Location = ResponseCacheLocation.Any)] // 30-second response cache
+        public async Task<IActionResult> GetPostsByCategory(string categoryName, [FromQuery] int page = 1, [FromQuery] int pageSize = 15)
+        {
+            try
+            {
+                var result = await _categoryService.GetPostsByCategoryAsync(categoryName, page, pageSize);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred: {ex.Message}");
+            }
         }
     }
 }
