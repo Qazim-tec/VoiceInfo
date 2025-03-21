@@ -31,6 +31,8 @@ namespace VoiceInfo.Services
         private const string TrendingPostsCacheKey = "trending_posts";
         private const string PostCacheKeyPrefix = "post_";
         private const string PostSlugCacheKeyPrefix = "post_slug_";
+        private const string AllPostsLightCacheKeyPrefix = "all_posts_light_page_";
+        private readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10);
 
         public PostService(
             ApplicationDbContext context,
@@ -444,5 +446,59 @@ namespace VoiceInfo.Services
                 _cache.Remove($"{MyPostsCacheKeyPrefix}{userId}_{i}");
             }
         }
+
+        public async Task<PaginatedResponse<PostLightDto>> GetAllPostsLightAsync(int pageNumber = 1, int pageSize = 15)
+        {
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 15;
+
+            string cacheKey = $"{AllPostsLightCacheKeyPrefix}{pageNumber}_size_{pageSize}";
+            if (_cache.TryGetValue(cacheKey, out PaginatedResponse<PostLightDto> cachedResult))
+            {
+                return cachedResult;
+            }
+
+            var totalPosts = await _context.Posts
+                .Where(p => !p.IsDeleted)
+                .CountAsync();
+
+            var posts = await _context.Posts
+                .AsNoTracking()
+                .Where(p => !p.IsDeleted)
+                .OrderByDescending(p => p.CreatedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new PostLightDto
+                {
+                    Id = p.Id,
+                    Title = p.Title,
+                    CreatedAt = p.CreatedAt,
+                    AuthorName = p.Author != null ? $"{p.Author.FirstName} {p.Author.LastName}" : "Unknown Author",
+                    IsFeatured = p.IsFeatured,
+                    IsLatestNews = p.IsLatestNews
+                })
+                .ToListAsync();
+
+            var result = new PaginatedResponse<PostLightDto>
+            {
+                Items = posts,
+                CurrentPage = pageNumber,
+                TotalPages = (int)Math.Ceiling(totalPosts / (double)pageSize),
+                TotalItems = totalPosts,
+                ItemsPerPage = pageSize
+            };
+
+            _cache.Set(cacheKey, result, new MemoryCacheEntryOptions().SetSlidingExpiration(CacheDuration));
+            return result;
+        }
+
+        private void InvalidateCache()
+        {
+            for (int i = 1; i <= 100; i++) // Assuming max 100 pages
+            {
+                _cache.Remove($"{AllPostsLightCacheKeyPrefix}{i}_size_15");
+            }
+        }
+
     }
 }

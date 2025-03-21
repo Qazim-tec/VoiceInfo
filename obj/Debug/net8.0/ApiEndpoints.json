@@ -325,6 +325,27 @@
   },
   {
     "ContainingType": "VoiceInfo.Controllers.PostController",
+    "Method": "GetAllPostsLight",
+    "RelativePath": "api/Post/all-posts-light",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "page",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "pageSize",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.PostController",
     "Method": "CreatePost",
     "RelativePath": "api/Post/create",
     "HttpMethod": "POST",

@@ -204,6 +204,23 @@ namespace VoiceInfo.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { error = "Failed to update latest news status", details = ex.Message });
+
+            }
+        }
+
+        [HttpGet("all-posts-light")]
+        [Authorize(Roles = "Admin")]
+        [ResponseCache(Duration = 30, Location = ResponseCacheLocation.Any)]
+        public async Task<IActionResult> GetAllPostsLight([FromQuery] int page = 1, [FromQuery] int pageSize = 15)
+        {
+            try
+            {
+                var result = await _postService.GetAllPostsLightAsync(page, pageSize);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred: {ex.Message}");
             }
         }
     }

@@ -68,6 +68,17 @@ namespace VoiceInfo.DTOs
         public int CommentsCount { get; set; } 
         public List<CommentResponseDto> Comments { get; set; } = new List<CommentResponseDto>();
     }
+
+    public class PostLightDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string AuthorName { get; set; }
+        public bool IsFeatured { get; set; }
+        public bool IsLatestNews { get; set; }
+    }
+
     public class FeaturePostDto
     {
         [Required]
