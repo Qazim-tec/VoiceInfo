@@ -18,7 +18,7 @@ namespace VoiceInfo.Controllers
         }
 
         [HttpPost("create")]
-        [Authorize(Roles = "Admin")] // Only admins can create categories
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateCategory(CategoryCreateDto categoryCreateDto)
         {
             try
@@ -33,7 +33,7 @@ namespace VoiceInfo.Controllers
         }
 
         [HttpPut("update/{categoryId}")]
-        [Authorize(Roles = "Admin")] // Only admins can update categories
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateCategory(int categoryId, CategoryCreateDto categoryCreateDto)
         {
             try
@@ -76,7 +76,7 @@ namespace VoiceInfo.Controllers
         }
 
         [HttpDelete("delete/{categoryId}")]
-        [Authorize(Roles = "Admin")] // Only admins can delete categories
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteCategory(int categoryId)
         {
             try
@@ -91,7 +91,7 @@ namespace VoiceInfo.Controllers
         }
 
         [HttpGet("{categoryName}/posts")]
-        [ResponseCache(Duration = 30, Location = ResponseCacheLocation.Any)] // 30-second response cache
+        [ResponseCache(Duration = 30, Location = ResponseCacheLocation.Any)]
         public async Task<IActionResult> GetPostsByCategory(string categoryName, [FromQuery] int page = 1, [FromQuery] int pageSize = 15)
         {
             try
@@ -102,6 +102,21 @@ namespace VoiceInfo.Controllers
             catch (KeyNotFoundException ex)
             {
                 return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"An error occurred: {ex.Message}");
+            }
+        }
+
+        [HttpGet("top-posts")]
+        [ResponseCache(Duration = 30, Location = ResponseCacheLocation.Any)]
+        public async Task<IActionResult> GetCategoriesWithTopPosts([FromQuery] int postsPerCategory = 3)
+        {
+            try
+            {
+                var result = await _categoryService.GetCategoriesWithTopPostsAsync(postsPerCategory);
+                return Ok(result);
             }
             catch (Exception ex)
             {

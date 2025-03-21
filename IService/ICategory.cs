@@ -11,5 +11,6 @@ namespace VoiceInfo.IService
         Task<List<CategoryResponseDto>> GetAllCategoriesAsync();
         Task<bool> DeleteCategoryAsync(int categoryId);
         Task<PaginatedResponse<PostResponseDto>> GetPostsByCategoryAsync(string categoryName, int pageNumber = 1, int pageSize = 15);
+        Task<List<CategoryWithPostsDto>> GetCategoriesWithTopPostsAsync(int postsPerCategory = 3);
     }
 }

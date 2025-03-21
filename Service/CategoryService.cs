@@ -17,6 +17,7 @@ namespace VoiceInfo.Services
         private readonly IMemoryCache _cache;
         private const string CategoriesCacheKey = "categories_all";
         private const string PostsByCategoryCacheKeyPrefix = "posts_by_category_";
+        private const string CategoriesWithPostsCacheKey = "categories_with_posts";
         private readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10); // Cache for 10 minutes
 
         public CategoryService(ApplicationDbContext context, IMemoryCache cache)
@@ -174,10 +175,48 @@ namespace VoiceInfo.Services
             return result;
         }
 
+        public async Task<List<CategoryWithPostsDto>> GetCategoriesWithTopPostsAsync(int postsPerCategory = 3)
+        {
+            if (_cache.TryGetValue(CategoriesWithPostsCacheKey, out List<CategoryWithPostsDto> cachedResult))
+            {
+                return cachedResult;
+            }
+
+            var categoriesWithPosts = await _context.Categories
+                .Where(c => !c.IsDeleted)
+                .Select(c => new CategoryWithPostsDto
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Posts = c.Posts
+                        .Where(p => !p.IsDeleted)
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Take(postsPerCategory)
+                        .Select(p => new PostResponseDto
+                        {
+                            Id = p.Id,
+                            Title = p.Title,
+                            Slug = p.Slug,
+                            CreatedAt = p.CreatedAt,
+                            CategoryId = p.CategoryId ?? 0,
+                            CategoryName = c.Name
+                        })
+                        .ToList()
+                })
+                .Where(c => c.Posts.Any())
+                .ToListAsync();
+
+            var cacheOptions = new MemoryCacheEntryOptions().SetSlidingExpiration(CacheDuration);
+            _cache.Set(CategoriesWithPostsCacheKey, categoriesWithPosts, cacheOptions);
+
+            return categoriesWithPosts;
+        }
+
         private void InvalidateCache(string categoryName)
         {
             _cache.Remove(CategoriesCacheKey);
-            for (int i = 1; i <= 100; i++) // Assuming max 100 pages for simplicity
+            _cache.Remove(CategoriesWithPostsCacheKey);
+            for (int i = 1; i <= 100; i++) // Assuming max 100 pages
             {
                 _cache.Remove($"{PostsByCategoryCacheKeyPrefix}{categoryName.ToLower()}_page_{i}_size_15");
             }

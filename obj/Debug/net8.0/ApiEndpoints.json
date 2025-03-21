@@ -85,6 +85,22 @@
   },
   {
     "ContainingType": "VoiceInfo.Controllers.CategoryController",
+    "Method": "GetCategoriesWithTopPosts",
+    "RelativePath": "api/Category/top-posts",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "postsPerCategory",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.CategoryController",
     "Method": "UpdateCategory",
     "RelativePath": "api/Category/update/{categoryId}",
     "HttpMethod": "PUT",

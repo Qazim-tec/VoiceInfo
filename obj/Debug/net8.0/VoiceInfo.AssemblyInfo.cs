@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VoiceInfo")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+70d6ce3d0aa27387e923c58296165ce0c628ed86")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+50456512fd5162ebb5ba2b3cc8438701dc4648ab")]
 [assembly: System.Reflection.AssemblyProductAttribute("VoiceInfo")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VoiceInfo")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

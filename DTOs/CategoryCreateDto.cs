@@ -17,4 +17,11 @@ namespace VoiceInfo.DTOs
         public DateTime CreatedAt { get; set; }
         public bool IsDeleted { get; set; }
     }
+
+    public class CategoryWithPostsDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public List<PostResponseDto> Posts { get; set; }
+    }
 }
