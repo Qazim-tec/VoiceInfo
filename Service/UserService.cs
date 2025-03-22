@@ -32,7 +32,7 @@ namespace VoiceInfo.Services
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public async Task<UserResponseDto> RegisterAsync(UserRegisterDto userRegisterDto)
+        public async Task<AuthResponseDto> RegisterAsync(UserRegisterDto userRegisterDto)
         {
             var user = new User
             {
@@ -48,13 +48,33 @@ namespace VoiceInfo.Services
 
             await _userManager.AddToRoleAsync(user, "User");
 
-            return new UserResponseDto
+            var roles = await _userManager.GetRolesAsync(user);
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
+            var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
+                Subject = new ClaimsIdentity(new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.Id),
+                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim(ClaimTypes.Role, roles.FirstOrDefault() ?? "User")
+                }),
+                Expires = DateTime.UtcNow.AddMinutes(double.Parse(_configuration["Jwt:ExpireMinutes"])),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
+                Issuer = _configuration["Jwt:Issuer"],
+                Audience = _configuration["Jwt:Audience"]
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            var tokenString = tokenHandler.WriteToken(token);
+
+            return new AuthResponseDto
+            {
+                Token = tokenString,
+                UserId = user.Id,
                 Email = user.Email,
-                CreatedAt = user.CreatedAt
+                Role = roles.FirstOrDefault() ?? "User",
+                FirstName = user.FirstName
             };
         }
 
@@ -183,15 +203,13 @@ namespace VoiceInfo.Services
                 .Where(c => c.UserId == userId && !c.IsDeleted)
                 .CountAsync();
 
-            var stats = new UserProfileStatsDto
+            return new UserProfileStatsDto
             {
                 FullName = $"{user.FirstName} {user.LastName}".Trim(),
                 Email = user.Email,
                 PostsCount = postsCount,
                 CommentsCount = commentsCount
             };
-
-            return stats;
         }
     }
 }
