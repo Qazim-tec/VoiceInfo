@@ -16,9 +16,13 @@ namespace VoiceInfo.DTOs
         public string Content { get; set; }
 
         [MaxLength(500)]
-        public string Excerpt { get; set; }
+        public string? Excerpt { get; set; } // Already optional
 
-        public IFormFile FeaturedImage { get; set; }
+        public IFormFile? FeaturedImage { get; set; } // Already optional
+
+        // Add up to 3 additional images
+        [MaxLength(3, ErrorMessage = "You can upload up to 3 additional images.")]
+        public List<IFormFile> AdditionalImages { get; set; } = new List<IFormFile>();
 
         public int? CategoryId { get; set; }
 
@@ -36,9 +40,15 @@ namespace VoiceInfo.DTOs
         public string Content { get; set; }
 
         [MaxLength(500)]
-        public string Excerpt { get; set; }
+        public string? Excerpt { get; set; } // Already optional
 
-        public IFormFile FeaturedImage { get; set; }
+        public IFormFile? FeaturedImage { get; set; } // Already optional
+
+        // Add up to 3 additional images
+        [MaxLength(3, ErrorMessage = "You can upload up to 3 additional images.")]
+        public List<IFormFile> AdditionalImages { get; set; } = new List<IFormFile>();
+
+        public List<string> AdditionalImagesToDelete { get; set; } = new List<string>();
 
         public int? CategoryId { get; set; }
 
@@ -50,8 +60,9 @@ namespace VoiceInfo.DTOs
         public int Id { get; set; }
         public string Title { get; set; }
         public string Content { get; set; }
-        public string Excerpt { get; set; }
-        public string FeaturedImageUrl { get; set; } // Changed to URL
+        public string? Excerpt { get; set; }
+        public string? FeaturedImageUrl { get; set; } // Already optional
+        public List<string> AdditionalImageUrls { get; set; } = new List<string>(); // Add this
         public int Views { get; set; }
         public bool IsFeatured { get; set; }
         public bool IsLatestNews { get; set; }
@@ -65,8 +76,10 @@ namespace VoiceInfo.DTOs
         public string CategoryName { get; set; }
 
         public List<string> Tags { get; set; } = new List<string>();
-        public int CommentsCount { get; set; } 
+        public int CommentsCount { get; set; }
         public List<CommentResponseDto> Comments { get; set; } = new List<CommentResponseDto>();
+        public int LikesCount { get; set; }
+        public bool IsLikedByUser { get; set; }
     }
 
     public class PostLightDto
@@ -77,6 +90,7 @@ namespace VoiceInfo.DTOs
         public string AuthorName { get; set; }
         public bool IsFeatured { get; set; }
         public bool IsLatestNews { get; set; }
+        public int LikesCount { get; set; }
     }
 
     public class FeaturePostDto

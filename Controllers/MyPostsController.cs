@@ -54,6 +54,7 @@ namespace VoiceInfo.Controllers
                     Content = p.Content,
                     Excerpt = p.Excerpt,
                     FeaturedImageUrl = p.FeaturedImageUrl,
+                    AdditionalImageUrls = p.AdditionalImageUrls, // Added to include additional images
                     Views = p.Views,
                     IsLatestNews = p.IsLatestNews,
                     IsFeatured = p.IsFeatured,
@@ -63,7 +64,8 @@ namespace VoiceInfo.Controllers
                     AuthorName = p.Author != null ? $"{p.Author.FirstName} {p.Author.LastName}" : "Unknown Author",
                     CategoryId = p.CategoryId,
                     CategoryName = p.Category != null ? p.Category.Name : "Uncategorized",
-                    Tags = p.Tags.Select(t => t.Name).ToList()
+                    Tags = p.Tags.Select(t => t.Name).ToList(),
+                    CommentsCount = p.Comments.Count(c => !c.IsDeleted) // Added for consistency
                 })
                 .ToListAsync();
 

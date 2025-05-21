@@ -1,4 +1,9 @@
+C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\publish\web.config
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\appsettings.json
+C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\publish\appsettings.json
+C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\publish\VoiceInfo.deps.json
+C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\publish\VoiceInfo.runtimeconfig.json
+C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\publish\VoiceInfo.staticwebassets.endpoints.json
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\VoiceInfo.staticwebassets.endpoints.json
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\VoiceInfo.exe
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\VoiceInfo.deps.json
@@ -6,8 +11,10 @@ C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\VoiceInfo.runtimeco
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\VoiceInfo.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\VoiceInfo.pdb
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\AutoMapper.dll
+C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\BouncyCastle.Cryptography.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\CloudinaryDotNet.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Humanizer.dll
+C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\MailKit.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Microsoft.AspNetCore.Cryptography.Internal.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Microsoft.AspNetCore.Cryptography.KeyDerivation.dll
@@ -46,11 +53,14 @@ C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Microsoft.IdentityM
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Microsoft.IdentityModel.Tokens.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Microsoft.OpenApi.dll
+C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\MimeKit.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Mono.TextTemplating.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Newtonsoft.Json.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Newtonsoft.Json.Bson.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Npgsql.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
+C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Polly.dll
+C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Polly.Core.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Swashbuckle.AspNetCore.Swagger.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Swashbuckle.AspNetCore.SwaggerGen.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\Swashbuckle.AspNetCore.SwaggerUI.dll
@@ -63,6 +73,7 @@ C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\System.Composition.
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\System.Diagnostics.DiagnosticSource.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\System.IdentityModel.Tokens.Jwt.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\System.IO.Pipelines.dll
+C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\System.Security.Cryptography.Pkcs.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\System.Text.Encodings.Web.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\System.Text.Json.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\cs\Microsoft.CodeAnalysis.resources.dll
@@ -130,6 +141,7 @@ C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\ru\Microsoft.CodeAn
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\tr\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Security.Cryptography.Pkcs.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\bin\Debug\net8.0\runtimes\browser\lib\net8.0\System.Text.Encodings.Web.dll
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\obj\Debug\net8.0\VoiceInfo.csproj.AssemblyReference.cache
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\obj\Debug\net8.0\VoiceInfo.GeneratedMSBuildEditorConfig.editorconfig
@@ -155,4 +167,3 @@ C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\obj\Debug\net8.0\refint\VoiceInfo.dl
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\obj\Debug\net8.0\VoiceInfo.pdb
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\obj\Debug\net8.0\VoiceInfo.genruntimeconfig.cache
 C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\obj\Debug\net8.0\ref\VoiceInfo.dll
-C:\Users\QAZIM\Documents\Blogsite\VoiceInfo\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt

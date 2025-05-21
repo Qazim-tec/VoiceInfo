@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "becdPDOd57dOWO1UM6mxlyCpockCkfdTRHI/Y0jrEUo=",
+  "Source": "VoiceInfo",
+  "BasePath": "_content/VoiceInfo",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

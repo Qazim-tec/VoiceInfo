@@ -83,30 +83,7 @@ namespace VoiceInfo.DTOs
 
     }
 
-    public class ForgotPasswordDto
-    {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
-    }
-
-    public class ResetPasswordDto
-    {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
-
-        [Required]
-        public string Token { get; set; }
-
-        [Required]
-        [MinLength(6)]
-        public string NewPassword { get; set; }
-
-        [Required]
-        [Compare("NewPassword", ErrorMessage = "Passwords do not match.")]
-        public string ConfirmNewPassword { get; set; }
-    }
+   
 
     public class RoleAssignmentDto
     {
@@ -123,5 +100,44 @@ namespace VoiceInfo.DTOs
         public string Email { get; set; }
         public int PostsCount { get; set; }
         public int CommentsCount { get; set; }
+    }
+
+    public class ConfirmOtpDto
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; }
+
+        [Required]
+        [MinLength(6)]
+        public string OtpCode { get; set; }
+    }
+
+    // Modified ForgotPasswordDto (using OTP instead of token)
+    public class ForgotPasswordDto
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; }
+    }
+
+    // Modified ResetPasswordDto (using OTP instead of token)
+    public class ResetPasswordDto
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; }
+
+        [Required]
+        [MinLength(6)]
+        public string OtpCode { get; set; } // Use OTP instead of token
+
+        [Required]
+        [MinLength(6)]
+        public string NewPassword { get; set; }
+
+        [Required]
+        [Compare("NewPassword", ErrorMessage = "Passwords do not match.")]
+        public string ConfirmNewPassword { get; set; }
     }
 }

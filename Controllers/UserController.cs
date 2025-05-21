@@ -19,10 +19,24 @@ namespace VoiceInfo.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register(UserRegisterDto userRegisterDto)
+        public async Task<IActionResult> Register([FromBody] UserRegisterDto userRegisterDto)
         {
-            var user = await _userService.RegisterAsync(userRegisterDto);
-            return Ok(user);
+            await _userService.RegisterAsync(userRegisterDto);
+            return Ok("Registration successful. Please check your email for the OTP.");
+        }
+
+        [HttpPost("confirm-otp")]
+        public async Task<IActionResult> ConfirmOtp([FromBody] ConfirmOtpDto confirmOtpDto)
+        {
+            var authResponse = await _userService.ConfirmOtpAsync(confirmOtpDto);
+            return Ok(authResponse);
+        }
+
+        [HttpPost("resend-otp")]
+        public async Task<IActionResult> ResendOtp([FromBody] ForgotPasswordDto forgotPasswordDto)
+        {
+            await _userService.ResendOtpAsync(forgotPasswordDto.Email);
+            return Ok("If a registration exists, a new OTP has been sent.");
         }
 
         [HttpPost("login")]
@@ -32,8 +46,22 @@ namespace VoiceInfo.Controllers
             return Ok(authResponse);
         }
 
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)
+        {
+            await _userService.ForgotPasswordAsync(forgotPasswordDto);
+            return Ok("If the email exists, an OTP has been sent for password reset.");
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto resetPasswordDto)
+        {
+            await _userService.ResetPasswordAsync(resetPasswordDto);
+            return Ok("Password reset successful.");
+        }
+
         [HttpPut("update/{userId}")]
-        public async Task<IActionResult> UpdateUser(string userId, UserUpdateDto userUpdateDto)
+        public async Task<IActionResult> UpdateUser(string userId, [FromBody] UserUpdateDto userUpdateDto)
         {
             var user = await _userService.UpdateUserAsync(userId, userUpdateDto);
             return Ok(user);

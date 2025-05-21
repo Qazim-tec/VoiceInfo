@@ -19,9 +19,12 @@ namespace VoiceInfo.Models
         public string Content { get; set; }
 
         [MaxLength(500)]
-        public string Excerpt { get; set; }
+        public string? Excerpt { get; set; } 
 
-        public string FeaturedImageUrl { get; set; } // Changed to URL string
+        public string? FeaturedImageUrl { get; set; } 
+
+        // Add this to store up to 3 additional image URLs
+        public List<string> AdditionalImageUrls { get; set; } = new List<string>();
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public int Views { get; set; } = 0;
@@ -41,6 +44,9 @@ namespace VoiceInfo.Models
 
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
         public ICollection<Tag> Tags { get; set; } = new List<Tag>();
+
+        public int LikesCount { get; set; } = 0;
+        public ICollection<PostLike> Likes { get; set; } = new List<PostLike>();
 
         public void GenerateSlug(int postId = 0)
         {

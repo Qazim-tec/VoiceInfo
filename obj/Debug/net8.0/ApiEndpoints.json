@@ -206,6 +206,22 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "VoiceInfoApi.Controllers.ContactController",
+    "Method": "SubmitContactForm",
+    "RelativePath": "api/Contact",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "form",
+        "Type": "VoiceInfoApi.Controllers.ContactFormDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "VoiceInfo.Controllers.FeaturedPostsController",
     "Method": "GetFeaturedPosts",
     "RelativePath": "api/FeaturedPosts",
@@ -373,6 +389,11 @@
         "IsRequired": false
       },
       {
+        "Name": "AdditionalImages",
+        "Type": "System.Collections.Generic.List\u00601[[Microsoft.AspNetCore.Http.IFormFile, Microsoft.AspNetCore.Http.Features, Version=8.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60]]",
+        "IsRequired": false
+      },
+      {
         "Name": "CategoryId",
         "Type": "System.Nullable\u00601[[System.Int32, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
         "IsRequired": false
@@ -445,6 +466,22 @@
   },
   {
     "ContainingType": "VoiceInfo.Controllers.PostController",
+    "Method": "LikePost",
+    "RelativePath": "api/Post/like/{postId}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "postId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.PostController",
     "Method": "GetPostBySlug",
     "RelativePath": "api/Post/slug/{slug}",
     "HttpMethod": "GET",
@@ -454,6 +491,22 @@
       {
         "Name": "slug",
         "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.PostController",
+    "Method": "UnlikePost",
+    "RelativePath": "api/Post/unlike/{postId}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "postId",
+        "Type": "System.Int32",
         "IsRequired": true
       }
     ],
@@ -490,6 +543,16 @@
       {
         "Name": "FeaturedImage",
         "Type": "Microsoft.AspNetCore.Http.IFormFile",
+        "IsRequired": false
+      },
+      {
+        "Name": "AdditionalImages",
+        "Type": "System.Collections.Generic.List\u00601[[Microsoft.AspNetCore.Http.IFormFile, Microsoft.AspNetCore.Http.Features, Version=8.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60]]",
+        "IsRequired": false
+      },
+      {
+        "Name": "AdditionalImagesToDelete",
+        "Type": "System.Collections.Generic.List\u00601[[System.String, System.Private.CoreLib, Version=8.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]",
         "IsRequired": false
       },
       {
@@ -535,6 +598,38 @@
         "StatusCode": 200
       }
     ]
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.ShareController",
+    "Method": "ShareBySlug",
+    "RelativePath": "api/Share/{slug}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "slug",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.ShareController",
+    "Method": "GenerateShareLinks",
+    "RelativePath": "api/Share/generate-share-links/{postId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "postId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
   },
   {
     "ContainingType": "VoiceInfo.Controllers.TagController",
@@ -648,6 +743,22 @@
   },
   {
     "ContainingType": "VoiceInfo.Controllers.UserController",
+    "Method": "ConfirmOtp",
+    "RelativePath": "api/User/confirm-otp",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "confirmOtpDto",
+        "Type": "VoiceInfo.DTOs.ConfirmOtpDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.UserController",
     "Method": "DeleteUser",
     "RelativePath": "api/User/delete/{userId}",
     "HttpMethod": "DELETE",
@@ -657,6 +768,22 @@
       {
         "Name": "userId",
         "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.UserController",
+    "Method": "ForgotPassword",
+    "RelativePath": "api/User/forgot-password",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "forgotPasswordDto",
+        "Type": "VoiceInfo.DTOs.ForgotPasswordDto",
         "IsRequired": true
       }
     ],
@@ -706,6 +833,38 @@
   },
   {
     "ContainingType": "VoiceInfo.Controllers.UserController",
+    "Method": "ResendOtp",
+    "RelativePath": "api/User/resend-otp",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "forgotPasswordDto",
+        "Type": "VoiceInfo.DTOs.ForgotPasswordDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.UserController",
+    "Method": "ResetPassword",
+    "RelativePath": "api/User/reset-password",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "resetPasswordDto",
+        "Type": "VoiceInfo.DTOs.ResetPasswordDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "VoiceInfo.Controllers.UserController",
     "Method": "UpdateUser",
     "RelativePath": "api/User/update/{userId}",
     "HttpMethod": "PUT",
@@ -724,5 +883,23 @@
       }
     ],
     "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Program\u002B\u003C\u003Ec",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_8",
+    "RelativePath": "health",
+    "HttpMethod": "GET",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.String",
+        "MediaTypes": [
+          "text/plain"
+        ],
+        "StatusCode": 200
+      }
+    ]
   }
 ]

@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore; // Added for DbContext
 using System.Security.Claims;
 using System.Threading.Tasks;
+using VoiceInfo.Data; // Added for ApplicationDbContext
 using VoiceInfo.DTOs;
 using VoiceInfo.IService;
 using VoiceInfo.Services;
@@ -13,10 +15,12 @@ namespace VoiceInfo.Controllers
     public class PostController : ControllerBase
     {
         private readonly IPostService _postService;
+        private readonly ApplicationDbContext _context; // Added for PostLikes queries
 
-        public PostController(IPostService postService)
+        public PostController(IPostService postService, ApplicationDbContext context)
         {
             _postService = postService;
+            _context = context;
         }
 
         [HttpPost("create")]
@@ -81,6 +85,11 @@ namespace VoiceInfo.Controllers
             try
             {
                 var post = await _postService.GetPostByIdAsync(postId);
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    post.IsLikedByUser = await _context.PostLikes.AnyAsync(pl => pl.PostId == postId && pl.UserId == userId);
+                }
                 return Ok(new { data = post });
             }
             catch (KeyNotFoundException ex)
@@ -99,6 +108,11 @@ namespace VoiceInfo.Controllers
             try
             {
                 var post = await _postService.GetPostBySlugAsync(slug);
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    post.IsLikedByUser = await _context.PostLikes.AnyAsync(pl => pl.PostId == post.Id && pl.UserId == userId);
+                }
                 return Ok(new { data = post });
             }
             catch (KeyNotFoundException ex)
@@ -117,6 +131,14 @@ namespace VoiceInfo.Controllers
             try
             {
                 var posts = await _postService.GetAllPostsAsync();
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    foreach (var post in posts)
+                    {
+                        post.IsLikedByUser = await _context.PostLikes.AnyAsync(pl => pl.PostId == post.Id && pl.UserId == userId);
+                    }
+                }
                 return Ok(new { data = posts });
             }
             catch (Exception ex)
@@ -196,7 +218,61 @@ namespace VoiceInfo.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"An error occurred: {ex.Message}");
+                return StatusCode(500, new { error = $"An error occurred: {ex.Message}" });
+            }
+        }
+
+        [HttpPost("like/{postId}")]
+        [Authorize]
+        public async Task<IActionResult> LikePost(int postId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { error = "User ID not found in token" });
+            }
+
+            try
+            {
+                var result = await _postService.LikePostAsync(postId, userId);
+                return result
+                    ? Ok(new { message = "Post liked successfully" })
+                    : BadRequest(new { error = "Post already liked" });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Failed to like post", details = ex.Message });
+            }
+        }
+
+        [HttpPost("unlike/{postId}")]
+        [Authorize]
+        public async Task<IActionResult> UnlikePost(int postId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { error = "User ID not found in token" });
+            }
+
+            try
+            {
+                var result = await _postService.UnlikePostAsync(postId, userId);
+                return result
+                    ? Ok(new { message = "Post unliked successfully" })
+                    : BadRequest(new { error = "Post not liked by user" });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Failed to unlike post", details = ex.Message });
             }
         }
     }

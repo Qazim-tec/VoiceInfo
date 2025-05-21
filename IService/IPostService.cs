@@ -15,5 +15,7 @@ namespace VoiceInfo.Services
         Task<bool> SetLatestNewsAsync(int postId, bool isLatestNews);
         Task<PostResponseDto> GetPostBySlugAsync(string slug); // Added this method
         Task<PaginatedResponse<PostLightDto>> GetAllPostsLightAsync(int pageNumber = 1, int pageSize = 15);
+        Task<bool> LikePostAsync(int postId, string userId);
+        Task<bool> UnlikePostAsync(int postId, string userId);
     }
 }

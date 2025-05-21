@@ -21,8 +21,15 @@ namespace VoiceInfo.Models
 
         public bool IsDeleted { get; set; } = false; // Soft delete support
 
+        // OTP-related fields
+        public string? OtpCode { get; set; } // Store the OTP
+        public DateTime? OtpExpiration { get; set; } // OTP expiration time
+        public bool IsEmailVerified { get; set; } = false; // Track email verification
+
         // Navigation properties
         public ICollection<Post> Posts { get; set; } = new List<Post>();
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+        public ICollection<PostLike> Likes { get; set; } = new List<PostLike>();
+
     }
 }

@@ -22,13 +22,14 @@ namespace VoiceInfo.Data
                     LastName = "User",
                     Email = "admin@voiceinfo.com",
                     UserName = "admin@voiceinfo.com",
-                    ProfilePicture = "" // Set a default value (e.g., empty string or a placeholder URL)
+                    ProfilePicture = "", // Set a default value
+                    IsEmailVerified = true // Ensure admin can log in without OTP
                 };
 
                 // Set a default password for the admin
                 var result = await userManager.CreateAsync(admin, "Admin@1234");
                 if (result.Succeeded)
-                {  
+                {
                     // Assign the Admin role to the user
                     await userManager.AddToRoleAsync(admin, "Admin");
                 }
@@ -39,6 +40,7 @@ namespace VoiceInfo.Data
                     {
                         Console.WriteLine($"Error: {error.Description}");
                     }
+                    throw new Exception("Failed to create admin user: " + string.Join(", ", result.Errors.Select(e => e.Description)));
                 }
             }
         }

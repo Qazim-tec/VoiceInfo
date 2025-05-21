@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.IdentityModel.Tokens.Jwt;
@@ -19,35 +20,103 @@ namespace VoiceInfo.Services
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IConfiguration _configuration;
         private readonly ApplicationDbContext _context;
+        private readonly IEmailService _emailService;
+        private readonly IMemoryCache _cache;
 
         public UserService(
             UserManager<User> userManager,
             RoleManager<IdentityRole> roleManager,
             IConfiguration configuration,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IEmailService emailService,
+            IMemoryCache cache)
         {
             _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
             _roleManager = roleManager ?? throw new ArgumentNullException(nameof(roleManager));
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _context = context ?? throw new ArgumentNullException(nameof(context));
+            _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
+            _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         }
 
-        public async Task<AuthResponseDto> RegisterAsync(UserRegisterDto userRegisterDto)
+        private string GenerateOtp()
         {
-            var user = new User
+            var random = new Random();
+            return random.Next(100000, 999999).ToString();
+        }
+
+        public async Task RegisterAsync(UserRegisterDto userRegisterDto)
+        {
+            // Check if email already exists in actual user table
+            var existingUser = await _userManager.FindByEmailAsync(userRegisterDto.Email);
+            if (existingUser != null)
+                throw new Exception("Email already registered.");
+
+            // Check if email is in cache
+            if (_cache.TryGetValue($"TempUser_{userRegisterDto.Email}", out _))
+                throw new Exception("Registration already in progress. Please check your email for the OTP.");
+
+            // Generate OTP
+            var otp = GenerateOtp();
+
+            // Hash the password
+            var passwordHasher = new PasswordHasher<User>();
+            var tempData = new TempRegistrationData
             {
                 FirstName = userRegisterDto.FirstName,
                 LastName = userRegisterDto.LastName,
                 Email = userRegisterDto.Email,
-                UserName = userRegisterDto.Email
+                PasswordHash = passwordHasher.HashPassword(null, userRegisterDto.Password),
+                OtpCode = otp,
+                OtpExpiration = DateTime.UtcNow.AddMinutes(10)
             };
 
-            var result = await _userManager.CreateAsync(user, userRegisterDto.Password);
-            if (!result.Succeeded)
-                throw new Exception("User registration failed.");
+            // Store in cache with 10-minute expiration
+            var cacheEntryOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpiration = tempData.OtpExpiration
+            };
+            _cache.Set($"TempUser_{userRegisterDto.Email}", tempData, cacheEntryOptions);
 
+            // Send OTP email
+            await _emailService.SendVerificationOtpAsync(tempData.Email, tempData.OtpCode);
+        }
+
+        public async Task<AuthResponseDto> ConfirmOtpAsync(ConfirmOtpDto confirmOtpDto)
+        {
+            // Retrieve temporary user data from cache
+            if (!_cache.TryGetValue($"TempUser_{confirmOtpDto.Email}", out TempRegistrationData tempData))
+                throw new Exception("User not found or registration expired.");
+
+            if (tempData.OtpCode != confirmOtpDto.OtpCode || tempData.OtpExpiration < DateTime.UtcNow)
+                throw new Exception("Invalid or expired OTP.");
+
+            // Create actual user
+            var user = new User
+            {
+                FirstName = tempData.FirstName,
+                LastName = tempData.LastName,
+                Email = tempData.Email,
+                UserName = tempData.Email,
+                IsEmailVerified = true
+            };
+
+            // Create user without password initially
+            var result = await _userManager.CreateAsync(user);
+            if (!result.Succeeded)
+                throw new Exception("User creation failed: " + string.Join(", ", result.Errors.Select(e => e.Description)));
+
+            // Set the password hash directly
+            user.PasswordHash = tempData.PasswordHash;
+            await _userManager.UpdateAsync(user);
+
+            // Assign default role
             await _userManager.AddToRoleAsync(user, "User");
 
+            // Remove from cache immediately after confirmation
+            _cache.Remove($"TempUser_{confirmOtpDto.Email}");
+
+            // Generate JWT token
             var roles = await _userManager.GetRolesAsync(user);
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
@@ -76,6 +145,104 @@ namespace VoiceInfo.Services
                 Role = roles.FirstOrDefault() ?? "User",
                 FirstName = user.FirstName
             };
+        }
+
+        public async Task ResendOtpAsync(string email)
+        {
+            // Check if email is in cache
+            if (!_cache.TryGetValue($"TempUser_{email}", out TempRegistrationData tempData))
+                return; // Silently fail to prevent email enumeration
+
+            // Generate new OTP
+            var newOtp = GenerateOtp();
+            tempData.OtpCode = newOtp;
+            tempData.OtpExpiration = DateTime.UtcNow.AddMinutes(10);
+
+            // Update cache
+            var cacheEntryOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpiration = tempData.OtpExpiration
+            };
+            _cache.Set($"TempUser_{email}", tempData, cacheEntryOptions);
+
+            // Send new OTP email
+            await _emailService.SendVerificationOtpAsync(tempData.Email, tempData.OtpCode);
+        }
+
+        public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto)
+        {
+            var user = await _userManager.FindByEmailAsync(loginDto.Email);
+            if (user == null || !await _userManager.CheckPasswordAsync(user, loginDto.Password))
+                throw new Exception("Invalid email or password.");
+
+            if (!user.IsEmailVerified)
+                throw new Exception("Email not verified. Please confirm your OTP.");
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.Id),
+                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim(ClaimTypes.Role, roles.FirstOrDefault() ?? "User")
+                }),
+                Expires = DateTime.UtcNow.AddMinutes(double.Parse(_configuration["Jwt:ExpireMinutes"])),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
+                Issuer = _configuration["Jwt:Issuer"],
+                Audience = _configuration["Jwt:Audience"]
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            var tokenString = tokenHandler.WriteToken(token);
+
+            return new AuthResponseDto
+            {
+                Token = tokenString,
+                UserId = user.Id,
+                Email = user.Email,
+                Role = roles.FirstOrDefault() ?? "User",
+                FirstName = user.FirstName
+            };
+        }
+
+        public async Task ForgotPasswordAsync(ForgotPasswordDto forgotPasswordDto)
+        {
+            var user = await _userManager.FindByEmailAsync(forgotPasswordDto.Email);
+            if (user == null)
+                return; // Silently fail to prevent email enumeration
+
+            // Generate and store OTP
+            user.OtpCode = GenerateOtp();
+            user.OtpExpiration = DateTime.UtcNow.AddMinutes(10);
+            await _userManager.UpdateAsync(user);
+
+            // Send OTP email
+            await _emailService.SendResetPasswordOtpAsync(user.Email, user.OtpCode);
+        }
+
+        public async Task ResetPasswordAsync(ResetPasswordDto resetPasswordDto)
+        {
+            var user = await _userManager.FindByEmailAsync(resetPasswordDto.Email);
+            if (user == null)
+                throw new Exception("User not found.");
+
+            if (user.OtpCode != resetPasswordDto.OtpCode || user.OtpExpiration < DateTime.UtcNow)
+                throw new Exception("Invalid or expired OTP.");
+
+            // Reset password
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(user, token, resetPasswordDto.NewPassword);
+            if (!result.Succeeded)
+                throw new Exception("Password reset failed: " + string.Join(", ", result.Errors.Select(e => e.Description)));
+
+            // Clear OTP
+            user.OtpCode = null;
+            user.OtpExpiration = null;
+            await _userManager.UpdateAsync(user);
         }
 
         public async Task<UserResponseDto> UpdateUserAsync(string userId, UserUpdateDto userUpdateDto)
@@ -145,43 +312,6 @@ namespace VoiceInfo.Services
                 throw new Exception("Failed to assign role.");
 
             return true;
-        }
-
-        public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto)
-        {
-            var user = await _userManager.FindByEmailAsync(loginDto.Email);
-            if (user == null || !await _userManager.CheckPasswordAsync(user, loginDto.Password))
-                throw new Exception("Invalid email or password.");
-
-            var roles = await _userManager.GetRolesAsync(user);
-
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.Id),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Role, roles.FirstOrDefault() ?? "User")
-                }),
-                Expires = DateTime.UtcNow.AddMinutes(double.Parse(_configuration["Jwt:ExpireMinutes"])),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
-                Issuer = _configuration["Jwt:Issuer"],
-                Audience = _configuration["Jwt:Audience"]
-            };
-
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            var tokenString = tokenHandler.WriteToken(token);
-
-            return new AuthResponseDto
-            {
-                Token = tokenString,
-                UserId = user.Id,
-                Email = user.Email,
-                Role = roles.FirstOrDefault() ?? "User",
-                FirstName = user.FirstName
-            };
         }
 
         public async Task<UserProfileStatsDto> GetUserProfileStatsAsync(string userId)

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Http; // Added for IFormFile
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -41,6 +42,10 @@ namespace VoiceInfo.Services
         {
             if (image == null || image.Length == 0) return null;
 
+            // Add size limit for security
+            if (image.Length > 5 * 1024 * 1024) // 5MB limit
+                throw new ArgumentException("Image size exceeds 5MB.");
+
             using var stream = image.OpenReadStream();
             var uploadParams = new ImageUploadParams
             {
@@ -52,6 +57,20 @@ namespace VoiceInfo.Services
             return uploadResult.SecureUrl.ToString();
         }
 
+        private async Task DeleteImageFromCloudinary(string imageUrl)
+        {
+            if (string.IsNullOrEmpty(imageUrl)) return;
+
+            // Extract public ID from URL
+            var uri = new Uri(imageUrl);
+            var segments = uri.Segments;
+            var fileName = segments.Last();
+            var publicId = Path.GetFileNameWithoutExtension(fileName);
+
+            var deletionParams = new DeletionParams(publicId);
+            await _cloudinary.DestroyAsync(deletionParams);
+        }
+
         public async Task<PostResponseDto> CreatePostAsync(PostCreateDto postCreateDto, string userId)
         {
             if (postCreateDto == null)
@@ -59,13 +78,17 @@ namespace VoiceInfo.Services
             if (string.IsNullOrEmpty(userId))
                 throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
 
-            // Validate CategoryId if provided (handle nullable int)
+            // Validate CategoryId if provided
             if (postCreateDto.CategoryId.HasValue && postCreateDto.CategoryId.Value > 0)
             {
                 var category = await _categoryService.GetCategoryByIdAsync(postCreateDto.CategoryId.Value);
                 if (category == null)
                     throw new ArgumentException($"Category with ID {postCreateDto.CategoryId.Value} does not exist or is deleted.");
             }
+
+            // Validate additional images count
+            if (postCreateDto.AdditionalImages != null && postCreateDto.AdditionalImages.Count > 3)
+                throw new ArgumentException("Cannot upload more than 3 additional images.");
 
             var post = new Post
             {
@@ -79,7 +102,22 @@ namespace VoiceInfo.Services
                 CreatedAt = DateTime.UtcNow
             };
 
+            // Upload featured image if provided
             post.FeaturedImageUrl = await UploadImageToCloudinary(postCreateDto.FeaturedImage);
+
+            // Upload additional images if provided
+            if (postCreateDto.AdditionalImages != null && postCreateDto.AdditionalImages.Any())
+            {
+                foreach (var image in postCreateDto.AdditionalImages)
+                {
+                    var imageUrl = await UploadImageToCloudinary(image);
+                    if (!string.IsNullOrEmpty(imageUrl))
+                    {
+                        post.AdditionalImageUrls.Add(imageUrl);
+                    }
+                }
+            }
+
             post.GenerateSlug();
 
             if (postCreateDto.Tags != null && postCreateDto.Tags.Any())
@@ -115,14 +153,43 @@ namespace VoiceInfo.Services
                     throw new ArgumentException($"Category with ID {postUpdateDto.CategoryId.Value} does not exist or is deleted.");
             }
 
+            // Validate additional images count
+            if (postUpdateDto.AdditionalImages != null && postUpdateDto.AdditionalImages.Count > 3)
+                throw new ArgumentException("Cannot upload more than 3 additional images.");
+
             post.Title = postUpdateDto.Title;
             post.Content = postUpdateDto.Content;
             post.Excerpt = postUpdateDto.Excerpt;
             post.CategoryId = postUpdateDto.CategoryId;
 
+            // Update featured image if provided
             if (postUpdateDto.FeaturedImage != null && postUpdateDto.FeaturedImage.Length > 0)
             {
+                if (!string.IsNullOrEmpty(post.FeaturedImageUrl))
+                    await DeleteImageFromCloudinary(post.FeaturedImageUrl);
                 post.FeaturedImageUrl = await UploadImageToCloudinary(postUpdateDto.FeaturedImage);
+            }
+
+            // Handle additional images
+            if (postUpdateDto.AdditionalImages != null && postUpdateDto.AdditionalImages.Any())
+            {
+                foreach (var oldImageUrl in post.AdditionalImageUrls)
+                    await DeleteImageFromCloudinary(oldImageUrl);
+                post.AdditionalImageUrls.Clear();
+                foreach (var image in postUpdateDto.AdditionalImages)
+                {
+                    var imageUrl = await UploadImageToCloudinary(image);
+                    if (!string.IsNullOrEmpty(imageUrl))
+                    {
+                        post.AdditionalImageUrls.Add(imageUrl);
+                    }
+                }
+            }
+            else if (postUpdateDto.AdditionalImagesToDelete != null && postUpdateDto.AdditionalImagesToDelete.Any())
+            {
+                foreach (var imageUrl in postUpdateDto.AdditionalImagesToDelete)
+                    await DeleteImageFromCloudinary(imageUrl);
+                post.AdditionalImageUrls.RemoveAll(url => postUpdateDto.AdditionalImagesToDelete.Contains(url));
             }
 
             post.GenerateSlug();
@@ -190,6 +257,7 @@ namespace VoiceInfo.Services
                 .Include(p => p.Author)
                 .Include(p => p.Category)
                 .Include(p => p.Tags)
+                .Include(p => p.Likes)
                 .Where(p => !p.IsDeleted)
                 .Select(p => new PostResponseDto
                 {
@@ -198,6 +266,7 @@ namespace VoiceInfo.Services
                     Content = p.Content,
                     Excerpt = p.Excerpt,
                     FeaturedImageUrl = p.FeaturedImageUrl,
+                    AdditionalImageUrls = p.AdditionalImageUrls,
                     Views = p.Views,
                     IsLatestNews = p.IsLatestNews,
                     IsFeatured = p.IsFeatured,
@@ -208,7 +277,8 @@ namespace VoiceInfo.Services
                     CategoryId = p.CategoryId ?? 0,
                     CategoryName = p.Category != null ? p.Category.Name : "Uncategorized",
                     Tags = p.Tags.Select(t => t.Name).ToList(),
-                    CommentsCount = p.Comments.Count(c => !c.IsDeleted)
+                    CommentsCount = p.Comments.Count(c => !c.IsDeleted),
+                    LikesCount = p.LikesCount // Added to include likes count
                 })
                 .ToListAsync();
 
@@ -228,6 +298,12 @@ namespace VoiceInfo.Services
             var isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
             if (!isAdmin && post.UserId != userId)
                 throw new UnauthorizedAccessException("You do not own this post.");
+
+            // Delete images from Cloudinary
+            if (!string.IsNullOrEmpty(post.FeaturedImageUrl))
+                await DeleteImageFromCloudinary(post.FeaturedImageUrl);
+            foreach (var imageUrl in post.AdditionalImageUrls)
+                await DeleteImageFromCloudinary(imageUrl);
 
             post.IsDeleted = true;
             post.CategoryId = null;
@@ -293,14 +369,14 @@ namespace VoiceInfo.Services
             string authorName = "Unknown Author";
             if (post.Author != null)
             {
-                authorName = $"{post.Author.FirstName} {post.Author.LastName}";
+                authorName = $"{post.Author.FirstName} {post.Author.LastName}"; // Fixed string interpolation
             }
             else
             {
                 var user = await _userManager.FindByIdAsync(post.UserId);
                 if (user != null)
                 {
-                    authorName = $"{user.FirstName} {user.LastName}";
+                    authorName = $"{user.FirstName} {user.LastName}"; // Fixed string interpolation
                 }
             }
 
@@ -325,6 +401,7 @@ namespace VoiceInfo.Services
                 Content = post.Content,
                 Excerpt = post.Excerpt,
                 FeaturedImageUrl = post.FeaturedImageUrl,
+                AdditionalImageUrls = post.AdditionalImageUrls,
                 Views = post.Views,
                 IsFeatured = post.IsFeatured,
                 IsLatestNews = post.IsLatestNews,
@@ -336,7 +413,10 @@ namespace VoiceInfo.Services
                 CategoryName = categoryName,
                 Tags = post.Tags?.Select(t => t.Name).ToList() ?? new List<string>(),
                 CommentsCount = allComments.Count,
-                Comments = rootComments
+                Comments = rootComments,
+                LikesCount = post.LikesCount,
+                IsLikedByUser = false // Set in controller
+
             };
         }
 
@@ -380,9 +460,10 @@ namespace VoiceInfo.Services
                     Id = p.Id,
                     Title = p.Title,
                     CreatedAt = p.CreatedAt,
-                    AuthorName = p.Author != null ? $"{p.Author.FirstName} {p.Author.LastName}" : "Unknown Author",
+                    AuthorName = p.Author != null ? $"{p.Author.FirstName} {p.Author.LastName}" : "Unknown Author", // Fixed string interpolation
                     IsFeatured = p.IsFeatured,
-                    IsLatestNews = p.IsLatestNews
+                    IsLatestNews = p.IsLatestNews,
+                    LikesCount = p.LikesCount // Added to include likes count
                 })
                 .ToListAsync();
 
@@ -396,6 +477,55 @@ namespace VoiceInfo.Services
             };
 
             return result;
+        }
+
+        public async Task<bool> LikePostAsync(int postId, string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
+
+            var post = await _context.Posts
+                .FirstOrDefaultAsync(p => p.Id == postId && !p.IsDeleted);
+            if (post == null)
+                throw new KeyNotFoundException("Post not found.");
+
+            var existingLike = await _context.PostLikes
+                .FirstOrDefaultAsync(pl => pl.UserId == userId && pl.PostId == postId);
+            if (existingLike != null)
+                return false;
+
+            var like = new PostLike
+            {
+                UserId = userId,
+                PostId = postId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.PostLikes.Add(like);
+            post.LikesCount++;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> UnlikePostAsync(int postId, string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+                throw new ArgumentException("User ID cannot be null or empty.", nameof(userId));
+
+            var post = await _context.Posts
+                .FirstOrDefaultAsync(p => p.Id == postId && !p.IsDeleted);
+            if (post == null)
+                throw new KeyNotFoundException("Post not found.");
+
+            var like = await _context.PostLikes
+                .FirstOrDefaultAsync(pl => pl.UserId == userId && pl.PostId == postId);
+            if (like == null)
+                return false;
+
+            _context.PostLikes.Remove(like);
+            post.LikesCount--;
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }
